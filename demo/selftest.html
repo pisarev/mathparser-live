@@ -1,0 +1,1820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GraphBuilder demo - self test</title>
+<style>
+  body{ font:14px/1.55 Consolas,monospace; max-width:64rem; margin:2rem auto; padding:0 1rem }
+  .ok{ color:#0a7a2f } .bad{ color:#b3261e; font-weight:700 } .dim{ color:#777 }
+  td{ padding:.25rem .9rem .25rem 0; vertical-align:top }
+  iframe{ width:900px; height:620px; border:1px solid #ccc; margin-top:1.5rem }
+  h2{ font-size:15px; margin:1.4rem 0 .4rem }
+</style>
+</head>
+<body>
+<h1>Self test</h1>
+<p class="dim">Drives the demo in an iframe and checks what a screenshot would show.
+Run it after any change to tracing or drawing.</p>
+<div id="log">starting...</div>
+<table id="out"></table>
+<iframe id="app"></iframe>
+
+<script>
+"use strict";
+
+/*
+  The page declares curves, view, opt and toX with const, so they live in the
+  global lexical scope and are not reachable as properties of the frame's
+  window. Everything that touches them therefore runs through eval inside the
+  frame, where those names are in scope.
+*/
+const rows = [];
+function check(name, pass, detail) {
+  rows.push({ name, pass });
+  const tr = document.createElement("tr");
+  tr.innerHTML = "<td>" + name + "</td><td class='" + (pass ? "ok" : "bad") + "'>" +
+    (pass ? "PASS" : "FAIL") + "</td><td class='dim'>" + (detail || "") + "</td>";
+  document.getElementById("out").appendChild(tr);
+}
+function heading(text) {
+  document.getElementById("out").insertAdjacentHTML("beforeend",
+    "<tr><td colspan='3'><h2>" + text + "</h2></td></tr>");
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+(async () => {
+  const log = document.getElementById("log");
+  const frame = document.getElementById("app");
+  /*
+    The frame is pointed at the page only now, with a unique query attached.
+    Without it the browser serves the copy it already has, and the test then
+    reports on code that is no longer on disk - the worst kind of green.
+  */
+  const load = () => new Promise(r => {
+    frame.addEventListener("load", r, { once: true });
+    frame.src = "index.html?selftest=" + performance.now();
+  });
+  await load();
+  /*
+    The demo restores the last session from browser storage, so whatever was
+    left there by hand would overwrite what this test sets up - and the test
+    would then measure someone else's state. It ran green here and red on
+    another machine for exactly that reason. Clear the storage and load again,
+    so every run starts from the same place.
+  */
+  frame.contentWindow.localStorage.clear();
+  await load();
+  const run = src => frame.contentWindow.eval(src);
+
+  /*
+    Readiness is taken from the data, not from the status line. The status line is
+    prose and gets translated for publication, so a test that greps it passes on
+    one copy of the page and hangs on the other - which is exactly what happened.
+  */
+  for (let i = 0; i < 60; i++) {
+    if (run("!!(data.seg && data.seg.length)")) break;
+    await wait(200);
+  }
+  const ready = run("!!(data.seg && data.seg.length)");
+  const status = run("document.getElementById('status').textContent");
+  check("engine comes up", ready, status);
+  if (!ready) { log.textContent = "engine did not start: " + status; return; }
+  log.textContent = "engine up: " + status;
+
+  /*
+    Moving the pointer and waiting for the answer.
+
+    Two things make a fixed pause wrong here. The engine answers asynchronously,
+    so a short pause races it. And the page throttles tracing to one request per
+    33 ms, so a move sent right after the previous one is dropped and no answer
+    ever comes - which is how this test failed on another machine while passing
+    here. So the move is repeated until an answer arrives.
+  */
+  async function hover(fx, fy) {
+    const move = `
+      (() => {
+        data.trace = null;
+        const r = canvas.getBoundingClientRect();
+        canvas.dispatchEvent(new MouseEvent('mousemove', {
+          clientX: r.left + r.width * ${fx}, clientY: r.top + r.height * ${fy}, bubbles: true }));
+      })();
+    `;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      run(move);
+      for (let i = 0; i < 8; i++) {
+        await wait(25);
+        if (run("!!(data.trace && data.trace.points.length)")) return true;
+      }
+    }
+    return false;
+  }
+
+  async function setup(cs, formulas, width) {
+    run(`
+      curves.length = 0;
+      ${JSON.stringify(formulas)}.forEach(f =>
+        curves.push({ text: f, on: true, trace: true, color: null }));
+      [...document.getElementById('cs').children]
+        .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cs === ${JSON.stringify(cs)})));
+      view.cx = 0; view.cy = 0; view.w = ${width};
+      view.h = ${width} * (canvas.clientHeight / canvas.clientWidth);
+      opt.trace = true;
+      drawPanel(); build();
+    `);
+    await wait(700);
+  }
+
+  /*
+    The check that matters: a traced point has to LIE ON the dashed line. That
+    is exactly what broke - in polar mode the line was mirrored vertically while
+    the point stayed put, so the two ran apart. The comparison is line against
+    point, not line against cursor: the cursor is allowed to lead, the two are
+    not allowed to disagree.
+  */
+  async function traceOnLine(label, fx, fy) {
+    if (!await hover(fx, fy)) { check(label, false, "the page sent no trace points"); return; }
+    const res = run(`
+      (() => {
+        const r = canvas.getBoundingClientRect();
+        const g = traceGeometry(r.width, r.height);
+        if (!g) return { ok: false, why: 'no line geometry' };
+        const dx = g.x2 - g.x1, dy = g.y2 - g.y1, len = Math.hypot(dx, dy);
+        let worst = 0, at = '';
+        for (const p of data.trace.points) {
+          const px = toX(p.x, r.width), py = toY(p.y, r.height);
+          const d = len ? Math.abs(dy * px - dx * py + g.x2 * g.y1 - g.y2 * g.x1) / len
+                        : Math.hypot(px - g.x1, py - g.y1);
+          if (d > worst) { worst = d; at = px.toFixed(1) + ', ' + py.toFixed(1); }
+        }
+        return { ok: worst < 0.5, worst, at };
+      })();
+    `);
+    check(label, !!res.ok, res.why || ("worst gap " + res.worst.toFixed(3) + " px at " + res.at));
+  }
+
+  /*
+    Ray check for polar mode. Distance alone can pass by luck when a point sits
+    near an axis, where a mirrored line still runs close to it.
+
+    This check was weak once, so the reasoning is written down. A negative radius
+    legitimately puts the point on the opposite ray, and an earlier version dealt
+    with that by comparing angles modulo pi. That made the check blind to a
+    mirrored line, which is the one defect it exists to catch: with the sign of
+    the vertical axis dropped the point appeared on the opposite side and the
+    comparison still passed.
+
+    So the caller must give a curve whose radius never goes negative. Then the
+    point belongs on the ray of the parameter itself, the comparison is modulo two
+    pi, and a mirrored line lands half a turn away and fails.
+  */
+  async function polarRay(label, fx, fy) {
+    if (!await hover(fx, fy)) { check(label, false, "the page sent no trace points"); return; }
+    const res = run(`
+      (() => {
+        const p = data.trace.points.find(q => Math.hypot(q.x, q.y) > 1e-6);
+        if (!p) return { ok: false, why: 'every traced point sits at the centre' };
+        const own = Math.atan2(p.y, p.x);
+        let point = Math.abs(own - data.trace.param) % (2 * Math.PI);
+        if (point > Math.PI) point = 2 * Math.PI - point;
+        return { ok: point < 1e-6, point, own, param: data.trace.param };
+      })();
+    `);
+    check(label, !!res.ok, res.why || ("point angle " + res.own.toFixed(4) +
+      " against traced " + res.param.toFixed(4) + ", half turns apart " +
+      (res.point / Math.PI).toFixed(3)));
+  }
+
+  /*
+    And the line itself. The check above is about the engine: it says the traced
+    point sits where the parameter says. This one is about the drawing: the dashed
+    line must run along that same direction.
+
+    A line through the centre has no near and far end, so its direction is only
+    defined up to half a turn - the comparison is modulo pi. That still catches a
+    mirrored axis: flipping the sign of the vertical component turns the angle
+    from t into -t, and the two differ by 2t, which is not a multiple of pi
+    anywhere except on the axes. Canvas counts y downwards, so the angle is
+    negated before comparing with the graph angle.
+  */
+  async function polarLine(label, fx, fy) {
+    if (!await hover(fx, fy)) { check(label, false, "the page sent no trace points"); return; }
+    const res = run(`
+      (() => {
+        const r = canvas.getBoundingClientRect();
+        const g = traceGeometry(r.width, r.height);
+        if (!g) return { ok: false, why: 'no line geometry' };
+        const drawn = -Math.atan2(g.y2 - g.y1, g.x2 - g.x1);
+        let diff = Math.abs(drawn - data.trace.param) % Math.PI;
+        if (diff > Math.PI / 2) diff = Math.PI - diff;
+        return { ok: diff < 1e-9, diff, drawn, param: data.trace.param };
+      })();
+    `);
+    check(label, !!res.ok, res.why || ("line angle " + res.drawn.toFixed(4) +
+      " against traced " + res.param.toFixed(4) + ", off by " + res.diff.toExponential(1)));
+  }
+
+  heading("Cartesian");
+  await setup("rect", ["Sin(X)", "Cos(X) / 2"], 10);
+  await traceOnLine("point on the line, left of centre", 0.25, 0.50);
+  await traceOnLine("point on the line, centre", 0.50, 0.35);
+  await traceOnLine("point on the line, right of centre", 0.78, 0.60);
+
+  heading("Polar");
+  await setup("polar", ["Sin(X)", "Cos(X) / 2"], 3);
+  await traceOnLine("point on the line, upper right", 0.68, 0.28);
+  await traceOnLine("point on the line, upper left", 0.30, 0.28);
+  await traceOnLine("point on the line, lower left", 0.30, 0.74);
+  await traceOnLine("point on the line, lower right", 0.68, 0.74);
+
+  /*
+    A radius that never goes negative: 2 + Cos(3 * X) stays between 1 and 3, so
+    every traced point has to sit on the ray of the parameter, not opposite it.
+  */
+  heading("Polar, radius always positive");
+  await setup("polar", ["2 + Cos(3 * X)"], 4);
+  await polarRay("point on the ray, upper right", 0.66, 0.30);
+  await polarRay("point on the ray, upper left", 0.32, 0.30);
+  await polarRay("point on the ray, lower left", 0.32, 0.72);
+  await polarRay("point on the ray, lower right", 0.66, 0.72);
+  await polarLine("line along the ray, upper right", 0.66, 0.30);
+  await polarLine("line along the ray, upper left", 0.32, 0.30);
+  await polarLine("line along the ray, lower left", 0.32, 0.72);
+  await polarLine("line along the ray, lower right", 0.66, 0.72);
+
+  /*
+    The example path - the page opened with no host at all.
+
+    Everything above drives the page through the engine, and that hid a defect
+    for as long as the file existed: the built-in example answered `polar: false`
+    for every trace, whatever the coordinate system. The page then took the
+    cartesian branch, drew the dashed line as a vertical at x = angle, and showed
+    fn(angle) instead of the radius. Nobody saw it here because with a host the
+    flag comes from the host and is right.
+
+    So this section calls `demo` directly - the same function that answers when
+    the page is opened from disk - and checks its reply rather than the drawing.
+    A test that only ever exercises the hosted path cannot see a defect that
+    lives in the other one.
+  */
+  heading("The example, with no host");
+
+  async function exampleTrace(label, cs, param, expect) {
+    const res = run(`
+      (() => {
+        [...document.getElementById('cs').children].forEach(b =>
+          b.setAttribute('aria-pressed', String(b.dataset.cs === ${JSON.stringify(cs)})));
+        curves.length = 0;
+        curves.push({ text: 'Sin(X)', on: true, trace: true, color: null });
+        data.trace = null;
+        demo({ cmd: 'trace', param: ${param} });
+        if (!data.trace) return { ok: false, why: 'the example answered nothing' };
+        const r = canvas.getBoundingClientRect();
+        const g = traceGeometry(r.width, r.height);
+        const p = data.trace.points[0];
+        return {
+          polar: data.trace.polar,
+          vertical: g ? Math.abs(g.x2 - g.x1) < 1e-9 : null,
+          lineAngle: g ? Math.atan2(-(g.y2 - g.y1), g.x2 - g.x1) : null,
+          px: p ? p.x : null, py: p ? p.y : null
+        };
+      })();
+    `);
+    if (res.why) { check(label, false, res.why); return; }
+    check(label, res.polar === expect.polar && res.vertical === expect.vertical,
+      "polar " + res.polar + ", line vertical " + res.vertical);
+    if (expect.polar) {
+      /*
+        The line has to run along the ray of the parameter. Compared modulo pi,
+        because a ray drawn through the origin covers both directions; a
+        cartesian vertical is caught by the `vertical` flag above, not here.
+      */
+      const half = Math.PI;
+      const off = ((res.lineAngle - param) % half + half) % half;
+      check(label + ": the line runs along the ray",
+        Math.min(off, half - off) < 1e-6, "line angle " + res.lineAngle.toFixed(4));
+      /*
+        The point is compared against the analytic answer rather than against an
+        angle. The example curve is the rose r = 2*cos(3t), whose radius goes
+        negative - and a negative radius legitimately puts the point on the
+        opposite ray. Comparing coordinates says what is actually meant: this
+        parameter, on this curve, gives this point.
+      */
+      const r = run("demoPolarRadius(0, " + param + ")");
+      const ex = r * Math.cos(param), ey = r * Math.sin(param);
+      const gap = Math.hypot(res.px - ex, res.py - ey);
+      check(label + ": the point is the point of the curve", gap < 1e-9,
+        "got (" + res.px.toFixed(4) + "; " + res.py.toFixed(4) +
+        "), expected (" + ex.toFixed(4) + "; " + ey.toFixed(4) + ")");
+    }
+  }
+
+  await exampleTrace("cartesian: the reply is cartesian", "rect", 1.25,
+    { polar: false, vertical: true });
+  await exampleTrace("polar: the reply is polar", "polar", 0.9,
+    { polar: true, vertical: false });
+
+  /*
+    The rest of the host protocol, as the example answers it.
+
+    The example used to answer three commands out of ten, and seven buttons of
+    the panel did nothing at all when the page was opened without the plugin:
+    the report stayed a placeholder, bookmarks were not stored, copying did not
+    copy. Not one check looked at any of it - the suite grew around the one
+    defect that had been found rather than around what the page promises.
+  */
+  async function exampleBuild(cs, formulas) {
+    run(`
+      [...document.getElementById('cs').children].forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.cs === ${JSON.stringify(cs)})));
+      curves.length = 0;
+      ${JSON.stringify(formulas)}.forEach(f =>
+        curves.push({ text: f, on: true, trace: true, color: null }));
+      view.cx = 0; view.cy = 0; view.w = 8;
+      view.h = 8 * (canvas.clientHeight / canvas.clientWidth);
+      opt.trace = true; drawPanel();
+      demo({ cmd: 'build', cs: ${JSON.stringify(cs)}, options: options(),
+             formulas: curves.map(c => ({ text: c.text, on: c.on, trace: c.trace })) });
+    `);
+    await wait(400);
+  }
+
+  for (const cs of ["rect", "polar"]) {
+    await exampleBuild(cs, ["A", "B", "C"]);
+    const got = run(`({ curves: (data.seg || []).length,
+                        crossings: (data.overlaps || []).length,
+                        peaks: ((data.extremes || {}).max || []).length })`);
+    check("the example draws a curve per formula, " + cs, got.curves === 3,
+      "formulas 3, curves " + got.curves);
+    check("the example finds intersections, " + cs, got.crossings > 0,
+      "intersections " + got.crossings);
+    check("the example finds extrema, " + cs, got.peaks > 0, "maxima " + got.peaks);
+  }
+
+  /*
+    Every traced curve has to answer with its own value. When the example drew
+    one rose for the whole list, every row of the panel showed the same number.
+  */
+  await exampleBuild("polar", ["A", "B", "C"]);
+  const values = run(`
+    (() => {
+      demo({ cmd: 'trace', param: 0.7 });
+      return data.trace.points.map(p => Math.hypot(p.x, p.y).toFixed(9));
+    })();
+  `);
+  check("each traced curve answers with its own value",
+    new Set(values).size === values.length, values.join(", "));
+
+  await exampleBuild("rect", ["A", "B"]);
+  const report = run(`(() => { demo({ cmd: 'report' });
+    return document.getElementById('reportBody').innerText.trim(); })()`);
+  check("the example produces a report", report.length > 0 && !/^Plot something/.test(report),
+    report.slice(0, 60).replace(/\s+/g, " "));
+  check("the report lists the intersections", /intersection/i.test(report),
+    report.slice(0, 60).replace(/\s+/g, " "));
+
+  const marks = run(`
+    (() => {
+      const before = JSON.stringify(curves.map(c => c.text));
+      demo({ cmd: 'bookmark', slot: 0, mode: 'save' });
+      const stored = marks[0] === 1;
+      curves.length = 0;
+      curves.push({ text: 'Z', on: true, trace: true, color: null });
+      demo({ cmd: 'bookmark', slot: 0, mode: 'load' });
+      return { stored, ok: JSON.stringify(curves.map(c => c.text)) === before };
+    })();
+  `);
+  check("a bookmark marks its slot as used", marks.stored, "slot flag " + marks.stored);
+  check("a bookmark restores the set of formulas", marks.ok, "restored " + marks.ok);
+
+  const clip = run(`
+    (() => {
+      [...document.getElementById('cs').children].forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.cs === 'polar')));
+      curves.length = 0;
+      ['A', 'B'].forEach(f => curves.push({ text: f, on: true, trace: true, color: null }));
+      demo({ cmd: 'copy' });
+      [...document.getElementById('cs').children].forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.cs === 'rect')));
+      curves.length = 0;
+      curves.push({ text: 'Q', on: true, trace: true, color: null });
+      demo({ cmd: 'paste' });
+      return { texts: JSON.stringify(curves.map(c => c.text)),
+               cs: document.querySelector('#cs [aria-pressed="true"]').dataset.cs };
+    })();
+  `);
+  check("copy and paste carry the whole state",
+    clip.texts === '["A","B"]' && clip.cs === "polar", clip.texts + ", " + clip.cs);
+
+  heading("Intersections against the answer known in advance");
+
+  /*
+    Only the host is checked against algebra here, and it has to be. The
+    example - the path with no host, the panel page opened straight off the
+    disk - does not read the formulas at all: it draws its own roses whatever
+    is typed. Asking it for the roots of Sin(X) and Cos(X)/2 would be asking
+    the wrong thing; it crosses drawn polylines in cartesian space, where the
+    pole costs nothing, and the checks above already watch that it keeps up
+    with the list of formulas.
+  */
+
+  /*
+    Everything above only ever asked whether the count of intersections was
+    above zero. That is why a plain defect lived through a green report: for
+    Sin(X) and Cos(X)/2 in polar the page returned two points that were the
+    SAME point, and missed the one at the pole. Two wrong answers, count still
+    above zero, all green.
+
+    So these checks name the answer first. Both curves are circles:
+      r = sin t          is  x^2 + y^2 = y
+      r = cos t / 2      is  x^2 + y^2 = x / 2
+    Subtract: y = x / 2, substitute: x = 0 or x = 2/5. Exactly two points,
+    (0, 0) and (0.4, 0.2), and no others. The first is the pole, where the two
+    curves arrive at different angles - t = 0 for one, t = pi/2 for the other -
+    so no search for a common root of the difference can ever find it.
+  */
+  const same = (p, q) => Math.hypot(p.x - q.x, p.y - q.y) < 1e-4;
+
+  await setup("polar", ["Sin(X)", "Cos(X) / 2"], 2);
+  const polarCross = run("JSON.stringify(data.overlaps || [])");
+  const pc = JSON.parse(polarCross);
+  const wanted = [{ x: 0.4, y: 0.2 }, { x: 0, y: 0 }];
+  const shown = pc.map(p => "(" + p.x.toFixed(4) + ", " + p.y.toFixed(4) + ")").join(" ");
+
+  check("two polar circles give exactly two intersections",
+    pc.length === 2, pc.length + " found: " + shown);
+  check("the intersection away from the pole is where algebra puts it",
+    pc.some(p => same(p, wanted[0])), "expected (0.4000, 0.2000), got " + shown);
+  check("the intersection at the pole is found",
+    pc.some(p => same(p, wanted[1])), "expected (0.0000, 0.0000), got " + shown);
+  check("no intersection is reported twice",
+    pc.every((p, i) => pc.every((q, j) => i === j || !same(p, q))), shown);
+  check("every intersection has its own letter",
+    new Set(pc.map(p => p.name)).size === pc.length,
+    pc.map(p => p.name).join(""));
+
+  /*
+    The same pair in Cartesian: sin x = cos x / 2 means tan x = 1/2, so the
+    roots are atan(1/2) plus whole multiples of pi. Here the count is not a
+    lower bound either - it is exactly how many of them fall inside the view.
+  */
+  await setup("rect", ["Sin(X)", "Cos(X) / 2"], 10);
+  const rectCross = JSON.parse(run("JSON.stringify(data.overlaps || [])"));
+  const roots = [];
+  for (let k = -10; k <= 10; k++) {
+    const x = Math.atan(0.5) + k * Math.PI;
+    if (Math.abs(x) <= 10) roots.push(x);
+  }
+  check("cartesian intersections match the roots of tan x = 1/2",
+    rectCross.length === roots.length &&
+    roots.every(x => rectCross.some(p => Math.abs(p.x - x) < 1e-4)),
+    rectCross.length + " found, " + roots.length + " expected");
+
+  /*
+    The rose is the case that tells the two implementations apart. Half of its
+    petals are drawn with a negative radius: for t between 90 and 180 degrees
+    r = sin(2t) is below zero, so the point lands at t + 180. The circle
+    r = 0.5 crosses every petal twice - eight points, at 15, 75, 105, 165, 195,
+    255, 285 and 345 degrees, all of them found on paper.
+
+    A search for a shared root of the difference finds four of them, and that is
+    what this page used to do. The engine of the component, searching by angle
+    combinations, found six. Crossing the drawn polylines - what both do now -
+    finds eight.
+  */
+  await setup("polar", ["Sin(2 * T)", "0.5"], 1.5);
+  const rose = JSON.parse(run("JSON.stringify(data.overlaps || [])"));
+  const petals = [];
+  for (const degrees of [15, 75, 105, 165, 195, 255, 285, 345]) {
+    const angle = degrees * Math.PI / 180;
+    petals.push({ x: 0.5 * Math.cos(angle), y: 0.5 * Math.sin(angle) });
+  }
+  check("a rose and a circle give all eight intersections",
+    rose.length === 8 && petals.every(w => rose.some(p => same(p, w))),
+    rose.length + " found of 8");
+
+  /*
+    A tangency: the curves share a point but never pass through each other, so
+    the difference keeps its sign and crossing the polylines says nothing. The
+    component engine lost this point when its search was rewritten around
+    segment crossings, and this page had the same hole.
+
+    Two checks, and the second matters more than the first. Finding a tangency
+    is easy if any close approach counts - and then two curves running side by
+    side sprinkle a mark on every pair of segments. So next to "it is found"
+    stands "it is not invented".
+  */
+  await setup("rect", ["X * X", "0 - X * X"], 3);
+  const touch = JSON.parse(run("JSON.stringify(data.overlaps || [])"));
+  /*
+    The tolerance here is a hundredth, not the ten-thousandth used elsewhere,
+    and that is a property of the problem rather than a concession to the code.
+    The curves are mirror images, so around the touch the distance between them
+    grows with the FOURTH power of the offset: a fifth of a hundredth to the
+    side puts them 5e-6 apart. Asking for the coordinate to a ten-thousandth
+    would mean resolving distances near 4e-16, past what a double holds. On
+    screen that difference is a hundredth of a pixel.
+
+    What the check is really for stays strict: exactly one mark, not zero and
+    not a scattering.
+  */
+  const near0 = p => Math.hypot(p.x, p.y) < 1e-2;
+  check("curves that touch without crossing give exactly one mark",
+    touch.length === 1 && near0(touch[0]),
+    touch.length + " found: " +
+      touch.map(p => "(" + p.x.toFixed(4) + ", " + p.y.toFixed(4) + ")").join(" "));
+
+  /*
+    The same pair of parabolas, moved apart by less than the chord between two
+    sampled points. They come no closer anywhere, so the gap has no local
+    minimum and there must be no mark at all. Without that rule the threshold
+    alone would produce them by the hundred.
+  */
+  await setup("rect", ["X * X", "X * X + 0.005"], 3);
+  const beside = JSON.parse(run("JSON.stringify(data.overlaps || [])"));
+  check("curves running close but never meeting give no marks",
+    beside.length === 0, beside.length + " found, 0 expected");
+
+  /*
+    The same pair of questions in polar, and the second one is harder here than
+    in cartesian. Two circles about one centre keep a CONSTANT gap all the way
+    round: there is no local minimum at all, and whatever minimum a search finds
+    is rounding noise in the last digit. Measured before the fix: 52 marks
+    strung along a pair of circles that never meet.
+  */
+  await setup("polar", ["2", "2 * cos(T)"], 3);
+  const ring = JSON.parse(run("JSON.stringify(data.overlaps || [])"));
+  check("circles that touch from inside give exactly one mark",
+    ring.length === 1 && Math.hypot(ring[0].x - 2, ring[0].y) < 1e-2,
+    ring.length + " found: " +
+      ring.map(p => "(" + p.x.toFixed(4) + ", " + p.y.toFixed(4) + ")").join(" "));
+
+  await setup("polar", ["2", "1.995"], 3);
+  const apart = JSON.parse(run("JSON.stringify(data.overlaps || [])"));
+  check("circles about one centre never meeting give no marks",
+    apart.length === 0, apart.length + " found, 0 expected");
+
+  /*
+    Curves that lie on top of each other. In polar 2 and -2 are the SAME circle:
+    the point (r, t) and (-r, t + pi) coincide. There is no isolated point to
+    mark - the intersection is the whole curve - and the honest answer is no
+    marks plus a named stretch where the two are indistinguishable.
+
+    Before this the same pair produced 52 marks strung around the circle. Each
+    was true on its own and meaningless together: you cannot point at a place
+    where the curves cross, because they cross everywhere.
+  */
+  await setup("polar", ["2", "0 - 2"], 6);
+  const twin = JSON.parse(run(
+    'JSON.stringify({ shown: (data.overlaps || []).length, total: data.crossTotal, same: (data.same || []).length })'));
+  check("curves lying on top of each other give no marks at all",
+    twin.shown === 0 && twin.total === 0,
+    "shown " + twin.shown + ", found " + twin.total);
+  check("and the stretch where they are indistinguishable is named",
+    twin.same >= 1, twin.same + " stretches");
+
+  /*
+    Thinning. What is asked is not a number - that depends on the zoom - but the
+    contract: shown marks are never closer than the configured pixel distance,
+    and the true count is not lost along the way.
+
+    The view is deliberately wide so the crossings crowd: at this zoom sin(60x)
+    meets the axis every ten pixels.
+  */
+  await setup("rect", ["sin(60 * X)", "0"], 20);
+  const crowd = JSON.parse(run(`
+    (() => {
+      const p = data.overlaps || [];
+      let near = Infinity;
+      for (let i = 0; i < p.length; i++)
+        for (let j = i + 1; j < p.length; j++)
+          near = Math.min(near, Math.hypot(p[i].x - p[j].x, p[i].y - p[j].y));
+      const pixel = (2 * view.w / canvas.width + 2 * view.h / canvas.height) / 2;
+      return JSON.stringify({ shown: p.length, total: data.crossTotal,
+        gap: near === Infinity ? -1 : near / pixel, spacing: opt.markSpacing });
+    })()`));
+  check("thinning keeps the true count while showing fewer marks",
+    crowd.total > crowd.shown && crowd.shown > 0,
+    "shown " + crowd.shown + " of " + crowd.total + " found");
+  check("shown marks are no closer than the spacing asks",
+    crowd.gap >= crowd.spacing,
+    crowd.gap.toFixed(1) + " px apart, spacing " + crowd.spacing);
+
+  /*
+    A snapshot with no formulas must not be applied. Applying it wipes a plot
+    that is already there and gives nothing back.
+
+    This is not a hypothetical. It happened in the plugin: a session saved at a
+    moment when the list was empty overwrote the working plot on the next open,
+    and the emptiness then reproduced itself at every start. The guard existed in
+    the plugin and was one comparison short - it checked that the formula list
+    was an array, and an empty array passed.
+
+    The check lives here because this is the path that actually runs in a suite.
+  */
+  await setup("rect", ["Sin(X)", "Cos(X) / 2"], 10);
+  const held = JSON.parse(run('JSON.stringify({ curves: curves.length })'));
+  run('applySnapshot({ type: "snapshot", cs: "rect", formulas: [], options: { maxX: 1 } });');
+  await wait(300);
+  const still = JSON.parse(run('JSON.stringify({ curves: curves.length, w: view.w })'));
+  check("a snapshot with no formulas is refused, not applied",
+    held.curves === 2 && still.curves === 2 && still.w === 10,
+    "curves " + held.curves + " -> " + still.curves + ", view " + still.w);
+
+  /*
+    Width and Height are the FULL size of the visible area, as in the classic
+    plugin window - the source of truth:
+
+        eMaxX.Text := FloatToStr(FGraph.MaxX * 2);   shown doubled
+        FGraph.MaxX := Value / 2;                    entered value halved
+
+    The component keeps a half-extent, so the page has to double it for display
+    and halve what is typed. It did neither: a width of 15 spanned 30 units on
+    screen, and 4.83 by 20 was drawn as 9.66 by 40 - wide flat cells, though the
+    "height" number was the larger one. It read as if the two sizes were applied
+    the wrong way round.
+
+    Measured against the canvas rather than against the variables: what the
+    field claims must be what the drawing spans from edge to edge.
+  */
+  const span = JSON.parse(run(`
+    (() => {
+      const sw = document.querySelector('.switch[data-opt="keepRatio"]');
+      const fw = document.querySelector('[data-opt="maxX"]');
+      const fh = document.querySelector('[data-opt="maxY"]');
+      const was = opt.keepRatio;
+      if (was) sw.click();
+      fw.value = "15"; fw.dispatchEvent(new Event("change"));
+      fh.value = "5";  fh.dispatchEvent(new Event("change"));
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      const out = {
+        acrossX: fromX(w, w) - fromX(0, w),
+        acrossY: fromY(0, h) - fromY(h, h),
+        shownW: fw.value, shownH: fh.value,
+        toEngineX: view.w, toEngineY: view.h
+      };
+      if (was) sw.click();
+      return JSON.stringify(out);
+    })()`));
+  /*
+    With the aspect lock on, the height is not entered - it is computed from the
+    width. The field is locked so that this is visible: one side is set, the
+    other shows the result. Without it both fields look equally free while only
+    one of them really is.
+
+    Asserted as an invariant - what is shown follows the setting - rather than as
+    two fixed states, because the page comes up with whatever the last session
+    left, and a check that demands a particular starting state fails on the page
+    for its own sloppiness.
+  */
+  const lock = JSON.parse(run(`
+    (() => {
+      const sw = document.querySelector('.switch[data-opt="keepRatio"]');
+      const fw = document.querySelector('[data-opt="maxX"]');
+      const fh = document.querySelector('[data-opt="maxY"]');
+      const kill = document.createElement("style");
+      kill.textContent = ".num{transition:none !important}";
+      document.head.appendChild(kill);
+      const state = () => ({
+        flag: opt.keepRatio, height: fh.readOnly, width: fw.readOnly,
+        look: getComputedStyle(fh).borderColor
+      });
+      const was = opt.keepRatio;
+      const a = (sw.click(), state());
+      const b = (sw.click(), state());
+      if (opt.keepRatio !== was) sw.click();
+      kill.remove();
+      return JSON.stringify({ a, b });
+    })()`));
+  check("with the aspect lock on the height is shown as computed, not entered",
+    lock.a.height === lock.a.flag && lock.b.height === lock.b.flag &&
+    lock.a.flag !== lock.b.flag &&
+    lock.a.width === false && lock.b.width === false &&
+    lock.a.look !== lock.b.look,
+    "lock " + lock.a.flag + ": height " + (lock.a.height ? "locked" : "free") +
+    "; lock " + lock.b.flag + ": height " + (lock.b.height ? "locked" : "free") +
+    "; width always free");
+
+  check("the width and height fields are the full span of the drawing",
+    Math.abs(span.acrossX - 15) < 1e-6 && Math.abs(span.acrossY - 5) < 1e-6 &&
+    span.shownW === "15" && span.shownH === "5" &&
+    Math.abs(span.toEngineX - 7.5) < 1e-9 && Math.abs(span.toEngineY - 2.5) < 1e-9,
+    "typed 15x5, canvas spans " + span.acrossX.toFixed(4) + "x" + span.acrossY.toFixed(4) +
+    ", engine gets " + span.toEngineX + "x" + span.toEngineY);
+
+  /*
+    Every setting on the panel has to survive a state restore. The code that
+    applies a snapshot walks a hand-written list of keys, and whatever is missing
+    from that list is silently lost on every bookmark, paste, and handshake with
+    the plugin. That is how the label corner, its margin, and the plate opacity
+    used to disappear: the user chose "bottom left", the plugin sent its state
+    back, and the label returned to the bottom right.
+
+    The comment beside that list warns about it. A warning is not a check - this
+    is the check.
+  */
+  /*
+    The keys come from the settings object, not from the markup. Reading the
+    markup was the blind spot that let this check pass while a setting was in
+    fact being lost: the pen colour is picked from a palette and carries no
+    data-opt attribute, so it was never among the keys and never examined. It
+    was missing from options() altogether - the colour left the page in no
+    direction at all, and no bookmark, session or share link ever brought it
+    back. A check that looks in the wrong place is worse than no check: it
+    reports that the ground is covered.
+  */
+  const unlisted = JSON.parse(run(`
+    (() => {
+      const src = applySnapshot.toString();
+      return JSON.stringify(Object.keys(opt).filter(k => !src.includes('"' + k + '"')));
+    })()`));
+  check("every panel setting is on the list that a restore walks",
+    unlisted.length === 0,
+    unlisted.length ? "missing: " + unlisted.join(", ") : "none missing");
+
+  /*
+    The other half of the same contract, and the half that was broken. A setting
+    can sit on the restore list and still never come back, because nothing ever
+    sends it: options() is what leaves the page - to the engine, into a bookmark,
+    into a session, into a share link. Whatever options() omits is a page-local
+    value that dies with the tab.
+
+    canvasW and canvasH are excluded on purpose: they are measured off the canvas
+    at the moment of sending and are not state to restore.
+  */
+  const undelivered = JSON.parse(run(`
+    (() => {
+      const src = applySnapshot.toString();
+      const derived = ["canvasW", "canvasH"];
+      return JSON.stringify(Object.keys(options())
+        .filter(k => !derived.includes(k) && !src.includes('"' + k + '"')));
+    })()`));
+  check("everything the page sends can also be restored",
+    undelivered.length === 0,
+    undelivered.length ? "not restored: " + undelivered.join(", ") : "none lost");
+
+  /*
+    And the round trip itself, on live values rather than on source text. The
+    pen colour, the number of decimals, and the aspect lock are the three
+    settings the engine does not need; precisely because it does not need them
+    they were the ones nobody noticed going missing.
+  */
+  const carried = JSON.parse(run(`
+    (() => {
+      const keep = { c: opt.penColor, d: opt.decimals, k: opt.keepRatio };
+      opt.penColor = "--c4"; opt.decimals = 2; opt.keepRatio = false;
+      const sent = options();
+      opt.penColor = "--c1"; opt.decimals = 6; opt.keepRatio = true;
+      applySnapshot({ type: "snapshot",
+        formulas: [{ text: "Sin(X)", on: true }], options: sent });
+      const got = { c: opt.penColor, d: opt.decimals, k: opt.keepRatio };
+      opt.penColor = keep.c; opt.decimals = keep.d; opt.keepRatio = keep.k;
+      return JSON.stringify(got);
+    })()`));
+
+
+
+  check("pen colour, decimals, and aspect lock survive a state restore",
+    carried.c === "--c4" && carried.d === 2 && carried.k === false,
+    "colour " + carried.c + ", decimals " + carried.d +
+    ", aspect " + carried.k);
+
+  /*
+    Marks belong to the set of curves they were computed on. Delete the formula
+    and its extrema and its trace used to stay on the canvas, over an empty
+    plot: nothing had told the page that they no longer referred to anything.
+  */
+  await setup("rect", ["Sin(X)", "Cos(X) / 2"], 10);
+  const before = JSON.parse(run(`JSON.stringify({
+    curves: (data.seg || []).length,
+    peaks: ((data.extremes || {}).max || []).length + ((data.extremes || {}).min || []).length })`));
+  run("curves.length = 0; drawPanel(); build();");
+  await wait(700);
+  const after = JSON.parse(run(`JSON.stringify({
+    curves: (data.seg || []).length,
+    crossings: (data.overlaps || []).length,
+    peaks: ((data.extremes || {}).max || []).length + ((data.extremes || {}).min || []).length,
+    trace: data.trace ? 1 : 0 })`));
+  check("with formulas the plot has marks to lose",
+    before.curves === 2 && before.peaks > 0,
+    "curves " + before.curves + ", marks " + before.peaks);
+  check("deleting the formulas takes their marks with them",
+    after.curves === 0 && after.crossings === 0 && after.peaks === 0 && after.trace === 0,
+    "curves " + after.curves + ", crossings " + after.crossings +
+    ", marks " + after.peaks + ", trace " + after.trace);
+
+  heading("A setting changed is only a setting changed");
+
+  /*
+    Editing any setting used to throw the plot out of polar and back into
+    cartesian. The reason was that the options message does not carry the
+    coordinate system, and the code that answered it decided the system from
+    what it had. Whatever else a settings change does, it must not move the plot
+    to another coordinate system.
+  */
+  await setup("polar", ["Sin(2 * T)", "0.5"], 1.5);
+  const kept = run(`
+    (() => {
+      const was = document.querySelector('#cs [aria-pressed="true"]').dataset.cs;
+      const seen = [];
+      const touch = (name, act) => {
+        act();
+        seen.push(name + "=" + document.querySelector('#cs [aria-pressed="true"]').dataset.cs);
+      };
+      const num = k => document.querySelector('.num[data-opt="' + k + '"]');
+      const sw = k => document.querySelector('.switch[data-opt="' + k + '"]');
+      touch("margin", () => { const n = num('signMargin'); n.value = "24"; n.onchange(); });
+      touch("angle", () => { const n = num('polarAngle'); n.value = "360"; n.onchange(); });
+      touch("blend", () => { const n = num('signBlend'); n.value = "200"; n.onchange(); });
+      touch("layout", () => { const s = document.getElementById('signLayout');
+                              s.selectedIndex = 2; s.onchange(); });
+      touch("smooth", () => sw('smooth').click());
+      touch("labels", () => sw('sign').click());
+      return { was, seen, now: document.querySelector('#cs [aria-pressed="true"]').dataset.cs };
+    })();
+  `);
+  check("no settings change moves the plot out of polar",
+    kept.was === "polar" && kept.now === "polar" &&
+    kept.seen.every(s => s.endsWith("=polar")),
+    kept.seen.join(", "));
+
+  heading("The label sits in the corner the list names");
+
+  /*
+    The list said one corner and the label was drawn in another - the control
+    and the canvas disagreed, and only the canvas tells the truth. Checked by
+    pixels: the label plate has to land in the quarter of the canvas that the
+    chosen position names.
+  */
+  await setup("rect", ["Sin(X)"], 10);
+  /*
+    The corners are stepped through ONE AT A TIME, with a wait between them.
+    The whole sweep used to sit inside a single synchronous run(): picking a
+    corner starts a rebuild, the frame was grabbed at once, and the first corner
+    was captured in the state left by the previous check. The failure drifted and
+    depended on whatever ran before this section.
+  */
+  const corners = [];
+  for (let i = 0; i < 4; i++) {
+    corners.push(JSON.parse(run(`
+      (() => {
+        const list = document.getElementById("signLayout");
+        list.selectedIndex = ${i};
+        list.onchange();
+        /*
+          The label is found by comparing two frames - one with it, one without -
+          rather than by colour. The plate takes its colour from the theme, so a
+          test for a white pixel would quietly find nothing on the dark theme and
+          go green where there was nothing to look at.
+        */
+        opt.signBlend = 255;
+        opt.sign = false;
+        paint();
+        const off = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        opt.sign = true;
+        paint();
+        const on = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let left = 1e9, right = -1, top = 1e9, bottom = -1;
+        for (let p = 0; p < on.length; p += 4) {
+          if (on[p] === off[p] && on[p + 1] === off[p + 1] &&
+              on[p + 2] === off[p + 2] && on[p + 3] === off[p + 3]) continue;
+          const k = p / 4, x = k % canvas.width, y = (k / canvas.width) | 0;
+          if (x < left) left = x;
+          if (x > right) right = x;
+          if (y < top) top = y;
+          if (y > bottom) bottom = y;
+        }
+        return JSON.stringify(right < 0 ? null : {
+          right: (left + right) / 2 > canvas.width / 2,
+          top: (top + bottom) / 2 < canvas.height / 2,
+          name: list.options[${i}].textContent
+        });
+      })();
+    `)));
+    await wait(200);
+  }
+  /*
+    The list is in the same order as TLayoutType in the component: bottom left,
+    bottom right, top left, top right.
+  */
+  const quarter = [
+    { right: false, top: false }, { right: true, top: false },
+    { right: false, top: true }, { right: true, top: true }
+  ];
+  corners.forEach((got, i) => {
+    check("the label goes where the list says: " + (got ? got.name : "?"),
+      !!got && got.right === quarter[i].right && got.top === quarter[i].top,
+      got ? ("right " + got.right + ", top " + got.top) : "no plate drawn");
+  });
+
+  heading("A link that carries the whole plot");
+
+  /*
+    The point of the link is that the person receiving it installs nothing: they
+    open it and see the same picture. So the check is a round trip - compose the
+    link from one state, read it back, and demand the state that comes out is
+    the one that went in.
+  */
+  await setup("polar", ["Sin(2 * T)", "0.5"], 1.5);
+  const trip = run(`
+    (() => {
+      const link = shareLink();
+      const back = shareState(link);
+      return {
+        link: link,
+        length: link.length,
+        cs: back && back.cs,
+        formulas: back && back.formulas.map(f => f.text).join("|"),
+        angle: back && back.options && back.options.polarAngle,
+        junk: shareState("just a message from a friend"),
+        broken: shareState("https://example.com/demo/#s=1.not-base64!!")
+      };
+    })();
+  `);
+  check("the link carries the coordinate system", trip.cs === "polar", trip.cs);
+  check("the link carries the formulas",
+    trip.formulas === "Sin(2 * T)|0.5", trip.formulas);
+  check("the link carries the settings", trip.angle === 360, "polar angle " + trip.angle);
+  check("the link fits in a message", trip.length < 2000, trip.length + " characters");
+  check("plain text is not mistaken for a link", trip.junk === null, String(trip.junk));
+  check("a mangled link is refused, not half-read", trip.broken === null, String(trip.broken));
+
+  heading("A square cell in the view");
+
+  /*
+    The page promises a square cell - size() recomputes the height from the
+    width and the shape of the canvas on every relayout. The Width and Height
+    fields used to write into the view separately, so any disagreement between
+    them drew a circle as an ellipse; and the first change of the window size
+    put the picture right again while the Height field went on showing the
+    number the user had typed. The picture and the field disagreed.
+  */
+  const box = run(`
+    (() => {
+      const field = k => document.querySelector('.num[data-opt="' + k + '"]');
+      const enter = (k, v) => { const n = field(k); n.value = String(v); n.onchange(); };
+      const round = () => {
+        const px = canvas.clientWidth / (view.w * 2);
+        const py = canvas.clientHeight / (view.h * 2);
+        return py / px;
+      };
+      const shot = () => ({ round: round(), w: view.w, h: view.h,
+                            fw: parseFloat(field('maxX').value),
+                            fh: parseFloat(field('maxY').value) });
+      enter('maxX', 10);
+      const byWidth = shot();
+      enter('maxY', 10);
+      const byHeight = shot();
+      size();
+      const afterResize = shot();
+      return { byWidth, byHeight, afterResize };
+    })();
+  `);
+  /*
+    With proportions kept, the two sides of the view are one number and its
+    consequence: on a canvas that is not square they cannot both be what was
+    typed. Switch it off and each side is its own again - which is what the
+    component itself has always allowed, and what a plot needs when the spans
+    of the axes are nowhere near each other.
+  */
+  const free = run(`
+    (() => {
+      const field = k => document.querySelector('.num[data-opt="' + k + '"]');
+      const enter = (k, v) => { const n = field(k); n.value = String(v); n.onchange(); };
+      const shot = () => ({ w: view.w, h: view.h,
+                            round: (canvas.clientHeight / (view.h * 2)) /
+                                   (canvas.clientWidth / (view.w * 2)) });
+      opt.keepRatio = false;
+      enter('maxX', 8);
+      enter('maxY', 8);
+      const both = shot();
+      opt.keepRatio = true;
+      size();
+      const back = shot();
+      return { both, back };
+    })();
+  `);
+  /*
+    The fields carry the FULL span, the way the classic window has always shown
+    it, and the view keeps half of it. So typing 8 leaves 4 on each side of the
+    centre. This check used to demand 8 and went red on 31.07 when the fields
+    were brought back to the original: the assertion was older than the rule.
+  */
+  check("with proportions off both sides are kept as typed",
+    Math.abs(free.both.w - 4) < 1e-9 && Math.abs(free.both.h - 4) < 1e-9,
+    "width " + free.both.w + ", height " + free.both.h + " for 8 typed");
+  check("with proportions off the cell is allowed to be oblong",
+    Math.abs(free.both.round - 1) > 1e-3, "cell " + free.both.round.toFixed(4));
+  check("turning proportions back on squares the cell again",
+    Math.abs(free.back.round - 1) < 1e-6, "cell " + free.back.round.toFixed(6));
+
+  const square = s => Math.abs(s.round - 1) < 1e-6;
+  // Field against view, at the ratio the original window uses: the field holds
+  // the full span, the view holds half of it.
+  const agrees = s => Math.abs(s.fw - s.w * 2) < 1e-6 &&
+                      Math.abs(s.fh - s.h * 2) < 1e-6;
+  check("a circle stays round after the width is typed in",
+    square(box.byWidth), "cell " + box.byWidth.round.toFixed(4));
+  check("a circle stays round after the height is typed in",
+    square(box.byHeight), "cell " + box.byHeight.round.toFixed(4));
+  check("a circle stays round after the canvas is relaid out",
+    square(box.afterResize), "cell " + box.afterResize.round.toFixed(4));
+  check("the fields show the view that is actually drawn",
+    agrees(box.byWidth) && agrees(box.byHeight) && agrees(box.afterResize),
+    "after relayout: field " + box.afterResize.fh + ", drawn " +
+    box.afterResize.h.toFixed(4));
+
+  heading("Settings that change the picture");
+
+  /*
+    The state left by the checks above is deliberately strange - single-letter
+    formulas, polar mode - and with nothing plotted there are no labels to look
+    at. So this one builds its own picture first.
+  */
+  await setup("rect", ["Sin(X)", "Cos(X) / 2"], 20);
+
+  /*
+    The transparency of the curve labels used to tint the plate alone, and the
+    plate is painted in --surface - the same white as the element the canvas
+    lies on. White over white is white at any alpha, so the field did nothing a
+    person could see: between 100 and 235 the picture moved by eleven levels per
+    channel. Nothing in this file noticed, because nothing here looked at what a
+    screenshot would show. This check does: it composites the canvas onto the
+    background behind it, exactly as the screen does, and demands a difference
+    an eye can find.
+  */
+  const blend = run(`
+    (() => {
+      // Tracing follows the pointer and would move between two shots.
+      opt.trace = false;
+      data.trace = null;
+      const stage = getComputedStyle(document.getElementById('stage'))
+        .backgroundColor.match(/\\d+/g).map(Number);
+      const shot = value => {
+        opt.signBlend = value;
+        paint();
+        const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        const o = new Uint8ClampedArray(d.length);
+        for (let i = 0; i < d.length; i += 4) {
+          const a = d[i + 3] / 255;
+          for (let k = 0; k < 3; k++)
+            o[i + k] = Math.round(d[i + k] * a + stage[k] * (1 - a));
+        }
+        return o;
+      };
+      const gap = (a, b) => {
+        let n = 0, max = 0;
+        for (let i = 0; i < a.length; i += 4) {
+          const d = Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) +
+                    Math.abs(a[i + 2] - b[i + 2]);
+          if (d) { n++; if (d > max) max = d; }
+        }
+        return { n, max };
+      };
+      opt.sign = true;
+      shot(235); shot(235);
+      const solid = shot(235), same = shot(235), faint = shot(100), none = shot(0);
+      opt.signBlend = 235;
+      paint();
+      return { steady: gap(solid, same), faint: gap(solid, faint),
+               none: gap(solid, none) };
+    })();
+  `);
+  check("painting the same twice gives the same picture",
+    blend.steady.n === 0, blend.steady.n + " pixels differ");
+  check("label transparency is visible on screen",
+    blend.faint.max >= 100 && blend.faint.n >= 200,
+    "235 against 100: " + blend.faint.n + " pixels, up to " + blend.faint.max);
+  check("transparency zero hides the label",
+    blend.none.max >= blend.faint.max && blend.none.n >= 200,
+    "235 against 0: " + blend.none.n + " pixels, up to " + blend.none.max);
+
+  /*
+    A row in the settings is a caption and a control. The host hides the ones a
+    browser cannot serve - the label font needs the editor own dialog - and it
+    used to hide the button while leaving the caption behind: "Label font" and
+    empty space to the right of it, a setting that looks broken rather than
+    absent. This looks for any such orphan, not for that one row.
+  */
+  const orphans = run(`
+    (() => {
+      document.querySelectorAll('details.group').forEach(d => d.open = true);
+      const out = [];
+      document.querySelectorAll('.row').forEach(r => {
+        if (getComputedStyle(r).display === 'none') return;
+        const live = [...r.children].filter(c =>
+          c.tagName !== 'LABEL' && getComputedStyle(c).display !== 'none');
+        if (!live.length) out.push((r.querySelector('label') || {}).textContent || '?');
+      });
+      return out;
+    })();
+  `);
+  check("no settings row is left as a caption with nothing beside it",
+    orphans.length === 0, orphans.join(", ") || "none");
+
+  /*
+    The report is an overlay across the whole stage, and it scrolls on its own.
+    The stage listens for the wheel and calls preventDefault to zoom, so without
+    isolation a wheel over the report did two wrong things at once: the report
+    stayed put and the graph changed scale. Reported from the editor, present in
+    every web copy of the page.
+
+    A synthetic wheel event cannot make the browser scroll - only real input
+    does that - so the check asserts the two things it can see. The scale must
+    not move, and the event must come back with defaultPrevented false: a
+    prevented wheel is one the browser will refuse to scroll with, which is the
+    mechanism of the defect rather than a symptom of it.
+  */
+  const wheelOverReport = run(`
+    (() => {
+      const r = document.getElementById('report');
+      if (!r.classList.contains('on')) document.getElementById('reportBtn').click();
+      const box = r.getBoundingClientRect();
+      const before = view.w;
+      const e = new WheelEvent('wheel', {
+        deltaY: 120, bubbles: true, cancelable: true,
+        clientX: box.left + box.width / 2, clientY: box.top + box.height / 2
+      });
+      r.dispatchEvent(e);
+      const after = view.w;
+      document.getElementById('reportBtn').click();
+      return { before, after, prevented: e.defaultPrevented,
+               scrollable: r.scrollHeight > r.clientHeight };
+    })();
+  `);
+  check("the wheel over the report does not rescale the graph",
+    wheelOverReport.before === wheelOverReport.after,
+    "scale " + wheelOverReport.before + " -> " + wheelOverReport.after);
+  check("the wheel over the report is left for the browser to scroll with",
+    wheelOverReport.prevented === false,
+    wheelOverReport.prevented ? "the stage took the event and prevented it"
+                              : "not prevented");
+
+  /*
+    The wheel over the stage has to obey the zoom steps from the settings, the
+    way the classic window does: its DoMouseWheelUp calls MakeZoom, and Zoom
+    takes ZoomInFactor when no explicit factor is given.
+
+    Both wheel checks above only prove the wheel is IGNORED where it should be.
+    Neither looks at the stage, so the page carried a hardcoded 1.12 for the
+    wheel while the buttons read the settings: changing "Zoom-in step" moved the
+    buttons and left the wheel alone, and every test stayed green.
+
+    A step of 0.25 is used rather than the default 0.5 so that a factor picked
+    up from somewhere else cannot pass by accident.
+  */
+  const wheelStep = run(`
+    (() => {
+      const stage = document.getElementById('stage');
+      const box = stage.getBoundingClientRect();
+      const at = { clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 };
+      const set = (name, value) => {
+        const f = document.querySelector('[data-opt="' + name + '"]');
+        f.value = value; f.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      const keep = { zoomIn: opt.zoomIn, zoomOut: opt.zoomOut,
+                     w: view.w, h: view.h, cx: view.cx, cy: view.cy };
+      set('zoomIn', 0.25); set('zoomOut', 0.25);
+      const spin = deltaY => {
+        const before = view.w;
+        stage.dispatchEvent(new WheelEvent('wheel',
+          Object.assign({ deltaY, bubbles: true, cancelable: true }, at)));
+        return view.w / before;
+      };
+      const out = { inward: spin(-120), outward: spin(120) };
+      /*
+        Put back what the check moved. Zooming in and out does not return the
+        view to where it started - 0.75 by 1.25 is 0.9375 - and the steps stay
+        where the check set them. The first version left both changed, the label
+        placement check ran against a view six per cent smaller, and it failed.
+        A check that leaves the product moved is a check that breaks its
+        neighbours.
+      */
+      set('zoomIn', keep.zoomIn); set('zoomOut', keep.zoomOut);
+      view.w = keep.w; view.h = keep.h; view.cx = keep.cx; view.cy = keep.cy;
+      /*
+        Repaint as well. Restoring the numbers is not enough: the canvas still
+        holds the zoomed picture, and the checks that follow measure pixels, not
+        variables. Without this the label placement check read the old drawing
+        and went red.
+      */
+      paint(); build();
+      return out;
+    })();
+  `);
+  check("the wheel in obeys the zoom-in step",
+    Math.abs(wheelStep.inward - 0.75) < 1e-9,
+    "step 0.25 gives factor " + wheelStep.inward.toFixed(4) + ", expected 0.7500");
+  check("the wheel out obeys the zoom-out step",
+    Math.abs(wheelStep.outward - 1.25) < 1e-9,
+    "step 0.25 gives factor " + wheelStep.outward.toFixed(4) + ", expected 1.2500");
+
+  heading("panel settings");
+
+  /*
+    Every field in the panel is checked here, and the point of the block is the
+    kind of proof it gives. A setting that no check touches is held up by
+    nothing: a constant nailed into the code beside it stays invisible. That is
+    exactly how the wheel carried a hardcoded 1.12 while the buttons read the
+    settings, and how twelve more fields were left standing on their good name.
+
+    Wherever the demo draws the result, the check reads pixels rather than
+    variables: a variable can hold the new value while the canvas still shows
+    the old picture.
+
+    Four fields - sampling accuracy, calculation time, intersection time and
+    search depth - are consumed by the Pascal engine, and this page has no
+    engine behind those. For them the check proves the boundary this page owns:
+    what the user typed is what leaves in the payload, as a number.
+  */
+  const settings = run(`
+    (() => {
+      const num = (name, value) => {
+        const f = document.querySelector('.num[data-opt="' + name + '"]');
+        f.value = value;
+        f.onchange();
+      };
+      const flip = (name, want) => {
+        const s = document.querySelector('.switch[data-opt="' + name + '"]');
+        if ((s.getAttribute('aria-pressed') === 'true') !== want) s.onclick();
+      };
+      const shot = () => ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const drawn = d => {
+        let n = 0;
+        for (let p = 3; p < d.length; p += 4) if (d[p] > 24) n++;
+        return n;
+      };
+      const colours = d => {
+        const seen = new Set();
+        for (let p = 0; p < d.length; p += 4)
+          if (d[p + 3] > 200) seen.add((d[p] << 16) | (d[p + 1] << 8) | d[p + 2]);
+        return seen.size;
+      };
+      const keep = {
+        cx: view.cx, cy: view.cy, grid: opt.grid,
+        hSpacing: opt.hSpacing, vSpacing: opt.vSpacing, penWidth: opt.penWidth,
+        multicolor: opt.multicolor, trace: opt.trace
+      };
+      opt.trace = false;
+      data.trace = null;
+      const out = {};
+
+      /*
+        Centre of the view. The engine holds an offset and the panel shows a
+        centre, and they differ in sign; this is the page side of that contract.
+        The world point under the middle of the canvas has to be the number in
+        the field, and the payload has to carry the same number.
+      */
+      num('centerX', 5);
+      num('centerY', -3);
+      out.centre = {
+        underMiddleX: view.cx,
+        underMiddleY: view.cy,
+        edgeLeft: view.cx - view.w,
+        edgeRight: view.cx + view.w,
+        sentX: options().centerX,
+        sentY: options().centerY
+      };
+      num('centerX', keep.cx);
+      num('centerY', keep.cy);
+
+      /*
+        Grid step. A coarser step must leave fewer lines on the canvas, and the
+        count is taken from the drawing: the loop in paint has a floor of its
+        own, so a variable alone would prove nothing.
+      */
+      /*
+        The canvas is opaque everywhere, so counting by transparency finds
+        nothing - the first version of this check read zero lines at every step
+        and said so. Lines are counted by comparing two frames instead, the way
+        the label check finds the label: draw without the grid, draw with it,
+        and a line is a place where the two frames differ.
+
+        Whole rows are counted, not a single scan line. A scan line through the
+        picture lands where it lands: the second version put one down the middle
+        and found nothing, because the axis is drawn after the grid and covers
+        it there, and the third landed exactly on a grid line of the other
+        direction and counted that one line five times. A horizontal grid line
+        spans nearly the whole width; a vertical one meets a given row in a
+        single pixel. Demanding half the width tells them apart whatever the
+        view happens to be.
+      */
+      const lineCount = (off, on, horizontal) => {
+        const w = canvas.width, h = canvas.height;
+        const differs = k => {
+          const p = k * 4;
+          return Math.abs(off[p] - on[p]) + Math.abs(off[p + 1] - on[p + 1]) +
+                 Math.abs(off[p + 2] - on[p + 2]) > 6;
+        };
+        const outer = horizontal ? h : w;
+        const inner = horizontal ? w : h;
+        let n = 0;
+        let inside = false;
+        for (let a = 0; a < outer; a++) {
+          let hits = 0;
+          for (let b = 0; b < inner; b++)
+            if (differs(horizontal ? a * w + b : b * w + a)) hits++;
+          const solid = hits > inner / 2;
+          if (solid && !inside) n++;
+          inside = solid;
+        }
+        return n;
+      };
+      const lines = (name, horizontal) => {
+        opt.grid = false;
+        paint();
+        const bare = shot();
+        opt.grid = true;
+        num(name, 0.5);
+        paint();
+        const many = lineCount(bare, shot(), horizontal);
+        num(name, 8);
+        paint();
+        const few = lineCount(bare, shot(), horizontal);
+        return { many, few };
+      };
+      out.hSpacing = lines('hSpacing', false);
+      out.vSpacing = lines('vSpacing', true);
+      num('hSpacing', keep.hSpacing);
+      num('vSpacing', keep.vSpacing);
+      opt.grid = false;
+      paint();
+
+      /*
+        Pen width. Measured as ink on the canvas: a thicker pen has to cover
+        more pixels. The grid is off for this, otherwise its lines drown the
+        difference.
+      */
+      num('penWidth', 1);
+      paint();
+      const thin = drawn(shot());
+      num('penWidth', 7);
+      paint();
+      const thick = drawn(shot());
+      num('penWidth', keep.penWidth);
+      out.penWidth = { thin, thick };
+
+      /*
+        A colour of its own for each formula. With it off every curve is drawn
+        in the pen colour, so the number of distinct colours on the canvas has
+        to drop. Two curves are needed for the question to mean anything.
+      */
+      out.curves = curves.filter(c => c.on).length;
+      flip('multicolor', true);
+      paint();
+      const many = colours(shot());
+      flip('multicolor', false);
+      paint();
+      const one = colours(shot());
+      flip('multicolor', keep.multicolor);
+      opt.grid = keep.grid;
+      opt.trace = keep.trace;
+      paint();
+      out.multicolor = { many, one };
+
+      return out;
+    })();
+  `);
+
+  check("the centre of the view is the number in the field",
+    Math.abs(settings.centre.underMiddleX - 5) < 1e-9 &&
+    Math.abs(settings.centre.underMiddleY + 3) < 1e-9,
+    "the middle of the canvas is at " + settings.centre.underMiddleX +
+    ", " + settings.centre.underMiddleY + ", expected 5, -3");
+  check("the visible range is centred on that number",
+    Math.abs((settings.centre.edgeLeft + settings.centre.edgeRight) / 2 - 5) < 1e-9,
+    settings.centre.edgeLeft + " .. " + settings.centre.edgeRight);
+  check("the centre leaves for the engine unchanged",
+    settings.centre.sentX === 5 && settings.centre.sentY === -3,
+    "the payload carries " + settings.centre.sentX + ", " + settings.centre.sentY);
+  check("a coarser grid step along X leaves fewer lines drawn",
+    settings.hSpacing.few < settings.hSpacing.many && settings.hSpacing.many > 2,
+    "step 0.5 draws " + settings.hSpacing.many + " lines, step 8 draws " +
+    settings.hSpacing.few);
+  check("a coarser grid step along Y leaves fewer lines drawn",
+    settings.vSpacing.few < settings.vSpacing.many && settings.vSpacing.many > 2,
+    "step 0.5 draws " + settings.vSpacing.many + " lines, step 8 draws " +
+    settings.vSpacing.few);
+  check("a thicker pen covers more of the canvas",
+    settings.penWidth.thick > settings.penWidth.thin * 1.5,
+    "width 1 inks " + settings.penWidth.thin + " pixels, width 7 inks " +
+    settings.penWidth.thick);
+  check("turning off the colour per formula leaves fewer colours on the canvas",
+    settings.curves >= 2
+      ? settings.multicolor.one < settings.multicolor.many
+      : settings.multicolor.one <= settings.multicolor.many,
+    settings.curves + " curves: " + settings.multicolor.many +
+    " colours on, " + settings.multicolor.one + " off");
+
+  /*
+    Point density. High precision doubles the sample count, and picking the
+    quality automatically raises it further - both the way the component does
+    it, and both only visible in how many points come back.
+
+    The formula matters here. Picking the quality automatically only acts when
+    the curve oscillates faster than the even grid can follow: the host counts
+    the turns and asks for a dozen points per hump. On Sin(X) it correctly does
+    nothing, and the first version of this check ran on Sin(X), saw the same
+    number twice, and passed anyway - a check that could not fail. Sin(60*X)
+    gives it something to react to.
+  */
+  const density = {};
+  run(`
+    (() => {
+      curves.length = 0;
+      el('formula').value = 'Sin(60*X)';
+      commitField();
+      build();
+    })();
+  `);
+  await wait(1200);
+  for (const variant of [
+    { name: "plain", precise: "false", autoquality: "false" },
+    { name: "precise", precise: "true", autoquality: "false" },
+    { name: "auto", precise: "false", autoquality: "true" }
+  ]) {
+    run(`
+      (() => {
+        const flip = (name, want) => {
+          const s = document.querySelector('.switch[data-opt="' + name + '"]');
+          if ((s.getAttribute('aria-pressed') === 'true') !== want) s.onclick();
+        };
+        flip('precise', ` + variant.precise + `);
+        flip('autoquality', ` + variant.autoquality + `);
+        build();
+      })();
+    `);
+    await wait(1400);
+    density[variant.name] = run(`
+      (data.seg || []).reduce((n, c) =>
+        n + (c.seg || []).reduce((m, p) => m + p.length / 2, 0), 0);
+    `);
+  }
+  check("high precision puts more points into the curve",
+    density.precise > density.plain * 1.5,
+    "plain " + density.plain + " points, precise " + density.precise);
+  check("picking the quality automatically thickens a fast oscillation",
+    density.auto > density.plain * 1.25,
+    "plain " + density.plain + " points, automatic " + density.auto);
+
+  /*
+    Put the page back the way it was found. A check that leaves the product
+    moved is a check that breaks its neighbours - the wheel check learned that
+    once already, and this one changes the formula list as well.
+  */
+  run(`
+    (() => {
+      const flip = (name, want) => {
+        const s = document.querySelector('.switch[data-opt="' + name + '"]');
+        if ((s.getAttribute('aria-pressed') === 'true') !== want) s.onclick();
+      };
+      flip('precise', false);
+      flip('autoquality', true);
+      curves.length = 0;
+      el('formula').value = 'Sin(X)';
+      commitField();
+      build();
+    })();
+  `);
+  await wait(1000);
+
+  /*
+    Sampling accuracy, calculation time, intersection time and search depth are
+    read by the Pascal engine - WebPanel and uLazPanel both assign them to the
+    component. This page has no engine behind those four, so what it can prove
+    is its own half of the contract: the number typed into the field is the
+    number that leaves in the payload, as a number and not as text.
+
+    That is not a formality. Every field on this page goes through one handler,
+    and a field left out of the payload list is a field that changes nothing at
+    all - which is how the grid step, the polar angle and every calculation
+    limit stayed silent until someone looked.
+  */
+  const engineFields = run(`
+    (() => {
+      const num = (name, value) => {
+        const f = document.querySelector('.num[data-opt="' + name + '"]');
+        f.value = value;
+        f.onchange();
+      };
+      const probe = { accuracy: 3, calcTime: 7500, overlapTime: 1250,
+                      overlapDepth: 21 };
+      const keep = {};
+      Object.keys(probe).forEach(k => {
+        keep[k] = opt[k];
+        num(k, probe[k]);
+      });
+      const sent = options();
+      const out = {};
+      Object.keys(probe).forEach(k => {
+        out[k] = { want: probe[k], got: sent[k], kind: typeof sent[k] };
+        num(k, keep[k]);
+      });
+      return out;
+    })();
+  `);
+  for (const name of ["accuracy", "calcTime", "overlapTime", "overlapDepth"]) {
+    const r = engineFields[name];
+    check("the field " + name + " reaches the engine as the number typed",
+      r.got === r.want && r.kind === "number",
+      "typed " + r.want + ", the payload carries " + r.got + " (" + r.kind + ")");
+  }
+
+
+  heading("the report");
+
+  /*
+    What the report says against what the canvas shows. Every check up to here
+    looked at the drawing, at the settings or at the state, and not one opened
+    the report and read it - so the report printed no intersections at all,
+    from the first day the host had one, while the marks were on the canvas and
+    the count was in the status line. The section was guarded by asking an
+    object for a length it does not have.
+
+    Hence the shape of these checks: the report is compared with what the page
+    itself already knows, not with a number written into the test.
+  */
+  const factsReport = await (async () => {
+    run(`
+      (() => {
+        curves.length = 0;
+        el('formula').value = 'Sin(X)';
+        commitField();
+        el('formula').value = 'Cos(X) / 2';
+        commitField();
+        opt.cross = true;
+        opt.peak = true;
+        build();
+      })();
+    `);
+    await wait(1400);
+    run(`
+      (() => {
+        const r = document.getElementById('report');
+        if (!r.classList.contains('on')) document.getElementById('reportBtn').click();
+      })();
+    `);
+    await wait(900);
+    return run(`
+      (() => {
+        const r = document.getElementById('report');
+        const heads = [...r.querySelectorAll('h2, h3')].map(h => h.textContent.trim());
+        const rows = [...r.querySelectorAll('table.pts tr')].map(tr =>
+          [...tr.children].map(td => td.textContent.trim()));
+        const cols = [...r.querySelectorAll('table.pts th')].map(th =>
+          th.textContent.trim());
+        return {
+          heads,
+          rows,
+          columns: cols,
+          tiles: [...r.querySelectorAll('.tile .t')].map(x => x.textContent.trim()),
+          dots: r.querySelectorAll('.fn-dot').length,
+          window: [...r.querySelectorAll('.kv .k')].map(x => x.textContent.trim()),
+          tables: r.querySelectorAll('table.pts').length,
+          curves: curves.filter(c => c.on).map(c => c.text),
+          crossings: (data.overlaps || []).length,
+          crossTotal: data.crossTotal,
+          peaks: ((data.extremes || {}).max || []).length +
+                 ((data.extremes || {}).min || []).length,
+          empty: r.textContent.trim().length
+        };
+      })();
+    `);
+  })();
+
+  check("the report has a section for every curve that is on",
+    factsReport.curves.every(text => factsReport.heads.includes(text)),
+    factsReport.curves.join(", ") + " against " + factsReport.heads.join(" / "));
+  check("the report is not empty when there is a graph",
+    factsReport.empty > 200, factsReport.empty + " characters");
+  /*
+    The page counts the crossings for the status line and the canvas marks. If
+    it found any, the report has to name them: those are the same points from
+    the same call.
+  */
+  check("crossings found on the canvas appear in the report",
+    factsReport.crossings === 0 || factsReport.heads.includes("Intersections"),
+    factsReport.crossings + " crossings, sections: " + factsReport.heads.join(" / "));
+  const listed = factsReport.rows.filter(r => /^[A-Z]{1,2}$/.test(r[0])).length;
+  check("the report lists each crossing, not just the heading",
+    factsReport.crossings === 0 || listed >= Math.min(factsReport.crossings, 3),
+    listed + " lines listed for " + factsReport.crossings + " crossings");
+  check("extrema found appear in the report",
+    factsReport.peaks === 0 || factsReport.heads.includes("Extrema"),
+    factsReport.peaks + " extrema, sections: " + factsReport.heads.join(" / "));
+
+
+  /*
+    The shape of the report, not just its contents. The plugin lays it out as a
+    summary in tiles, a window section, coloured formula chips and two tables
+    with columns; the web report used to be a flat list of name-value pairs and
+    read as a draft beside it. These checks hold the two together.
+  */
+  check("the report opens with a summary in tiles",
+    factsReport.tiles.length >= 4 &&
+      factsReport.tiles.includes("Coordinate system"),
+    factsReport.tiles.join(", ") || "no tiles");
+  check("the report states the window it was built for",
+    factsReport.window.includes("Centre") && factsReport.window.includes("Size"),
+    factsReport.window.join(", ") || "no window section");
+  check("intersections and extrema are tables with columns",
+    factsReport.tables >= 2 &&
+      ["Point", "X", "Y", "From the centre", "Curves"]
+        .every(c => factsReport.columns.includes(c)),
+    factsReport.tables + " tables, columns: " + factsReport.columns.join(", "));
+  check("every curve in the report carries its colour",
+    factsReport.dots >= factsReport.curves.length,
+    factsReport.dots + " colour marks for " + factsReport.curves.length + " curves");
+  check("a crossing row gives the distance from the centre as well",
+    factsReport.crossings === 0 ||
+      factsReport.rows.some(r => /^[A-Z]{1,2}$/.test(r[0]) && r.length >= 5),
+    (factsReport.rows.find(r => /^[A-Z]{1,2}$/.test(r[0])) || []).join(" | "));
+
+  run(`
+    (() => {
+      const r = document.getElementById('report');
+      if (r.classList.contains('on')) document.getElementById('reportBtn').click();
+      curves.length = 0;
+      el('formula').value = 'Sin(X)';
+      commitField();
+      build();
+    })();
+  `);
+  await wait(900);
+
+
+  heading("the theme");
+
+  /*
+    The theme has to outlive a reload. Everything else on the page does -
+    formulas, view, settings all come back from browser storage - and the theme
+    was the one thing that did not: the button changed an attribute in the
+    markup and nothing wrote it down, so a visitor who picked dark got light
+    back on the next visit.
+
+    The check drives the button, reloads the frame, and reads what the document
+    actually carries. Reading a variable would prove nothing here: the whole
+    defect was that the choice never left the DOM.
+  */
+  const themeKept = await (async () => {
+    const pick = () => run(`
+      (() => {
+        document.getElementById('themeBtn').click();
+        return document.documentElement.dataset.theme || 'light';
+      })();
+    `);
+    const chosen = pick();
+    await load();
+    const afterFirst = run(`document.documentElement.dataset.theme || 'light'`);
+    const back = pick();
+    await load();
+    const afterSecond = run(`document.documentElement.dataset.theme || 'light'`);
+    return { chosen, afterFirst, back, afterSecond };
+  })();
+  check("the theme picked stays picked after a reload",
+    themeKept.afterFirst === themeKept.chosen,
+    "chose " + themeKept.chosen + ", came back " + themeKept.afterFirst);
+  check("switching back also survives a reload",
+    themeKept.afterSecond === themeKept.back,
+    "chose " + themeKept.back + ", came back " + themeKept.afterSecond);
+
+  /*
+    The plugin passes the editor's theme in the address, and the page must not
+    argue with the editor: a stored choice is a choice made in a browser, not
+    in Notepad++.
+  */
+  const themeFromUrl = await (async () => {
+    const other = themeKept.afterSecond === "dark" ? "light" : "dark";
+    await new Promise(r => {
+      frame.addEventListener("load", r, { once: true });
+      frame.src = "index.html?selftest=" + performance.now() + "&theme=" + other;
+    });
+    const got = run(`document.documentElement.dataset.theme || 'light'`);
+    return { want: other, got };
+  })();
+  check("the theme in the address wins over the stored choice",
+    themeFromUrl.got === themeFromUrl.want,
+    "asked for " + themeFromUrl.want + ", got " + themeFromUrl.got);
+
+  // Put the page back the way it was found, for the checks that come after.
+  await load();
+
+
+  heading("nothing is forgotten");
+
+  /*
+    Everything the visitor chooses has to leave the page. What the page keeps
+    between visits is the object it hands the engine plus the coordinate
+    system and the formulas; the theme keeps a key of its own. A control whose
+    value reaches none of those is a control that forgets - and that is exactly
+    what the theme button did until 04.08.2026: it changed an attribute in the
+    markup and wrote it down nowhere.
+
+    The check walks EVERY control on the panel, moves each one off its current
+    value, and demands the new value in what the page saves. It does not
+    reload: a reload brings in the engine boot, the snapshot and the browser's
+    throttling of hidden tabs, and none of that is what is being asked about
+    here. The theme checks above cover the reload itself.
+
+    A setting added to the panel tomorrow is covered by this the moment it
+    appears, without anyone remembering to come here.
+  */
+  const saved = run(`
+    (() => {
+      const out = { fields: [], missing: [], extra: [] };
+      const seen = {};
+
+      /*
+        Turn the proportion lock off first. With it on, width and height are one
+        number and its consequence: whichever is typed last wins and the other
+        follows. Walking the fields in order set the width, then the height, and
+        the height put the width back - the check was catching its own
+        arithmetic rather than a forgotten setting.
+      */
+      const lock = document.querySelector('.switch[data-opt="keepRatio"]');
+      if (lock && lock.getAttribute('aria-pressed') === 'true') lock.onclick();
+
+      document.querySelectorAll('.num[data-opt]').forEach(f => {
+        const was = parseFloat(f.value.replace(',', '.'));
+        // Move it off the current value rather than picking a number out of
+        // the air: a zero width draws an empty canvas, and the check would be
+        // measuring emptiness.
+        const now = Number.isFinite(was) && was !== 0
+          ? Math.round(was * 1.5 * 1000) / 1000 : 3;
+        f.value = now;
+        f.onchange();
+        seen[f.dataset.opt] = now;
+      });
+      document.querySelectorAll('.switch[data-opt]').forEach(s => {
+        if (s !== lock) s.onclick();
+        seen[s.dataset.opt] = s.getAttribute('aria-pressed') === 'true';
+      });
+
+      const box = options();
+      Object.keys(seen).forEach(k => {
+        out.fields.push(k);
+        // Width and height live in the view and travel as halves - the field
+        // shows the full span. Compare the quantity, not the number.
+        const want = seen[k];
+        let got = box[k];
+        if (k === 'maxX') got = view.w * 2;
+        if (k === 'maxY') got = view.h * 2;
+        if (k === 'centerX') got = view.cx;
+        if (k === 'centerY') got = view.cy;
+        const same = typeof want === 'boolean'
+          ? got === want
+          : Math.abs((got === undefined ? NaN : got) - want) < 1e-6;
+        if (!same) out.missing.push(k + ': set ' + want + ', saved ' + got);
+      });
+
+      // Choices outside the panel: coordinate system, pen colour, formulas -
+      // the page puts all of them into the session state beside the settings.
+      const snapshot = state();
+      if (!snapshot.cs) out.missing.push('cs: does not reach the state');
+      if (!('penColor' in snapshot.options)) out.missing.push('penColor: does not reach the state');
+      if (!Array.isArray(snapshot.formulas)) out.missing.push('formulas: do not reach the state');
+
+      // The theme keeps a key of its own: the options object does not carry it.
+      let stored = null;
+      try {
+        document.getElementById('themeBtn').click();
+        stored = localStorage.getItem(THEME_KEY);
+      } catch (e) {}
+      if (stored !== (document.documentElement.dataset.theme || 'light'))
+        out.missing.push('theme: the choice was not written down (' + stored + ')');
+
+      return out;
+    })();
+  `);
+  check("every control on the panel reaches what the page saves",
+    saved.missing.length === 0,
+    saved.missing.length ? saved.missing.join("; ")
+                        : saved.fields.length + " controls checked");
+
+  // Put the page back to a known state for anything that runs after.
+  run(`(() => { try { localStorage.clear(); } catch (e) {} })();`);
+  await load();
+
+  finish();
+})().catch(e => {
+  /*
+    A check that throws used to kill the whole run in silence: no row, no final
+    line, and the page sat there looking as if it were still working. Twice in
+    one day - a name declared twice inside a template literal, and a wait that
+    never came back. An exception is a failure like any other, and it has to be
+    written down as one.
+  */
+  check("the run reached its end", false, e && e.stack
+    ? String(e.stack).split(String.fromCharCode(10)).slice(0, 2).join(" ") : String(e));
+  finish();
+});
+
+function finish() {
+  const bad = rows.filter(r => !r.pass).length;
+  const log = document.getElementById("log");
+  log.innerHTML = bad
+    ? "<span class='bad'>FAILURES: " + bad + " of " + rows.length + "</span>"
+    : "<span class='ok'>all " + rows.length + " checks passed</span>";
+}
+</script>
+</body>
+</html>
