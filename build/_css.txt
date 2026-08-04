@@ -1,0 +1,489 @@
+/*
+  The two settings in which a curve is really drawn:
+  light is a plotter pen on paper, dark is a beam on phosphor.
+  Components only ever refer to the variables, so a theme changes everything
+  at once.
+*/
+:root{
+  --paper:#F0F1EC; --plate:#E9EBE4; --ink:#171A18; --ink-soft:#5B6259;
+  --rule:#D3D7CD; --grid:#DCE0D5; --glow:0;
+  --pen-blue:#2F5C9E; --pen-red:#B03A32; --pen-green:#2C6B52;
+  --pen-violet:#6B4A8F; --pen-amber:#B67A2C;
+  --accent:var(--pen-blue);
+
+  --serif:"Palatino Linotype",Palatino,"Book Antiqua","URW Palladio L",Georgia,"Times New Roman",serif;
+  --mono:"Cascadia Mono",Consolas,"SF Mono","DejaVu Sans Mono",ui-monospace,monospace;
+
+  --measure:64ch;
+  --step:clamp(1.15rem,.6rem + 1.4vw,1.6rem);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#0B0E0C; --plate:#0F1311; --ink:#DEE4DC; --ink-soft:#8B9489;
+    --rule:#1F2622; --grid:#171E19; --glow:1;
+    --pen-blue:#74A4EA; --pen-red:#E87C70; --pen-green:#63D5A3;
+    --pen-violet:#B490E2; --pen-amber:#E2A855;
+  }
+}
+:root[data-theme="light"]{
+  --paper:#F0F1EC; --plate:#E9EBE4; --ink:#171A18; --ink-soft:#5B6259;
+  --rule:#D3D7CD; --grid:#DCE0D5; --glow:0;
+  --pen-blue:#2F5C9E; --pen-red:#B03A32; --pen-green:#2C6B52;
+  --pen-violet:#6B4A8F; --pen-amber:#B67A2C;
+}
+:root[data-theme="dark"]{
+  --paper:#0B0E0C; --plate:#0F1311; --ink:#DEE4DC; --ink-soft:#8B9489;
+  --rule:#1F2622; --grid:#171E19; --glow:1;
+  --pen-blue:#74A4EA; --pen-red:#E87C70; --pen-green:#63D5A3;
+  --pen-violet:#B490E2; --pen-amber:#E2A855;
+}
+
+*,*::before,*::after{ box-sizing:border-box }
+html{ -webkit-text-size-adjust:100%; overflow-x:hidden }
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:400 1.0625rem/1.72 var(--serif);
+  font-variant-numeric:oldstyle-num;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+::selection{ background:var(--accent); color:var(--paper) }
+a{ color:inherit; text-decoration:none }
+a:focus-visible,button:focus-visible{ outline:2px solid var(--accent); outline-offset:3px }
+
+.sheet{ max-width:74rem; margin:0 auto; padding:0 clamp(1.25rem,4vw,3.5rem) }
+.rule{ height:1px; background:var(--rule); border:0; margin:0 }
+
+/* Drawing-sheet labels: monospaced, letter-spaced, upper case. */
+.label{
+  font:400 .6875rem/1 var(--mono); letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-soft); font-variant-numeric:tabular-nums;
+}
+
+/* ── the header ────────────────────────────────────────────────────────── */
+.masthead{ display:flex; align-items:baseline; justify-content:space-between;
+  gap:1.5rem; padding:1.75rem 0 1.5rem; flex-wrap:wrap }
+.wordmark{ font:400 1.375rem/1 var(--serif); letter-spacing:.005em }
+.wordmark b{ font-weight:700 }
+.wordmark i{ font-style:italic; color:var(--ink-soft) }
+.masthead nav{ display:flex; gap:1.75rem }
+.masthead nav a{ transition:color .18s }
+.masthead nav a:hover{ color:var(--accent) }
+
+/* ── the hero ──────────────────────────────────────────────────────────── */
+.hero{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,6fr);
+  gap:clamp(2rem,5vw,4.5rem); align-items:center; padding:clamp(3rem,7vw,6rem) 0 }
+.hero-copy{ max-width:34rem }
+.eyebrow{ margin:0 0 1.5rem }
+h1{
+  margin:0 0 1.5rem; font-weight:400;
+  font-size:clamp(2.6rem,1.2rem + 4.6vw,4.75rem); line-height:1.02;
+  letter-spacing:-.021em; text-wrap:balance;
+}
+h1 em{ font-style:italic; color:var(--accent) }
+.lead{
+  margin:0 0 2.25rem; max-width:38ch; color:var(--ink-soft);
+  font-size:1.1875rem; line-height:1.68;
+  text-align:justify; hyphens:auto; -webkit-hyphens:auto;
+}
+/* The one line of code on the first screen: set as a line of type. */
+.oneliner{
+  font:400 .9375rem/1.7 var(--mono); margin:0 0 1rem;
+  padding:1.05rem 1.2rem; background:var(--plate);
+  border-left:2px solid var(--accent);
+  overflow-x:auto; font-variant-numeric:tabular-nums;
+  white-space:pre; tab-size:2;
+}
+.oneliner .cm{ color:var(--ink-soft) }
+.oneliner .st{ color:var(--pen-green) }
+.oneliner .kw{ color:var(--accent) }
+.oneliner .fn{ color:var(--accent) }
+/* A compiler directive: part of the program, but not what the eye is on. */
+.dir{ color:var(--ink-faint) }
+/* The caption under a listing: the same size as the other notes. */
+.undercode{
+  margin:0 0 2.25rem; font-size:.9375rem; line-height:1.65;
+  color:var(--ink-soft); text-align:justify; hyphens:auto;
+}
+.actions{ display:flex; gap:.85rem; flex-wrap:wrap; align-items:center }
+.btn{
+  font:400 .9375rem/1 var(--mono); letter-spacing:.02em;
+  padding:.85rem 1.4rem; border:1px solid var(--ink); transition:.18s;
+}
+.btn.solid{ background:var(--ink); color:var(--paper) }
+.btn.solid:hover{ background:var(--accent); border-color:var(--accent) }
+.btn.hollow{ border-color:var(--rule); color:var(--ink-soft) }
+.btn.hollow:hover{ border-color:var(--ink); color:var(--ink) }
+
+/* ── the plates ────────────────────────────────────────────────────────── */
+.plate{ background:var(--plate); border:1px solid var(--rule); position:relative }
+.plate svg{ display:block; width:100%; height:auto; aspect-ratio:1/1 }
+.plate .mm line{ stroke:var(--grid); stroke-width:.18 }
+.plate .trace{ filter:drop-shadow(0 0 calc(var(--glow) * 2.2px) currentColor) }
+/* Corner marks, as on a drawing sheet. */
+.plate::before,.plate::after{
+  content:""; position:absolute; width:9px; height:9px; pointer-events:none;
+  border:1px solid var(--ink-soft); opacity:.5;
+}
+.plate::before{ top:-1px; left:-1px; border-right:0; border-bottom:0 }
+.plate::after{ bottom:-1px; right:-1px; border-left:0; border-top:0 }
+
+/*
+  The caption stacks rather than sits on one line: formulas can be long, and on
+  one line they pushed the plate outwards - the min-width of a flex item is auto
+  by default, so clipping never happened and the whole page grew a scrollbar.
+  Now the formula wraps (to at most two lines), and min-height keeps the
+  captions of neighbouring plates on one line.
+*/
+.caption{ display:flex; flex-direction:column; gap:.35rem; min-height:4.4rem;
+  padding:.7rem .85rem; border-top:1px solid var(--rule) }
+.caption .fx{ min-width:0; font:400 .75rem/1.4 var(--mono); color:var(--ink);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; overflow-wrap:anywhere }
+.caption .no{ min-width:0; font:400 .6875rem/1 var(--mono); color:var(--ink-soft);
+  letter-spacing:.1em; font-variant-numeric:tabular-nums;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.hero .caption{ min-height:0 }
+.hero .caption .fx{ -webkit-line-clamp:3 }
+
+/* The pen draws the line. Without script, or with reduced motion, the curve is
+   simply there. */
+.trace{ stroke-dasharray:var(--len); stroke-dashoffset:var(--len) }
+.js .trace{ stroke-dashoffset:var(--len) }
+.js .drawn .trace{ animation:ink var(--dur,3.4s) cubic-bezier(.33,.05,.2,1) forwards }
+html:not(.js) .trace{ stroke-dashoffset:0 }
+@keyframes ink{ to{ stroke-dashoffset:0 } }
+@media (prefers-reduced-motion:reduce){
+  .trace,.js .trace{ stroke-dashoffset:0 !important; animation:none !important }
+}
+
+/* ── the layer list ────────────────────────────────────────────────────── */
+/* Three rows, like a parts list on a drawing: number, name, purpose, what it
+   depends on. */
+.stack{ padding:clamp(2.5rem,5vw,3.75rem) 0 }
+.stack .head{ display:flex; justify-content:space-between; align-items:baseline;
+  gap:1.5rem; margin:0 0 1.75rem; flex-wrap:wrap }
+.stack h2{ margin:0; line-height:1.12; font-weight:400; font-size:1.75rem; letter-spacing:-.01em }
+.bom{ display:grid; gap:0 }
+.bom a{ display:grid; grid-template-columns:3.5rem minmax(0,1fr) minmax(0,1.1fr) minmax(0,.9fr);
+  gap:1.5rem; align-items:baseline; padding:1.05rem 0;
+  border-top:1px solid var(--rule); transition:.18s }
+.bom a:last-child{ border-bottom:1px solid var(--rule) }
+.bom a:hover{ background:var(--plate) }
+.bom .no{ font:400 .8125rem/1 var(--mono); color:var(--accent); letter-spacing:.14em }
+.bom .name{ font-size:1.125rem }
+.bom .what,.bom .dep{ font:400 .875rem/1.5 var(--mono); color:var(--ink-soft) }
+.bom .dep{ text-align:right }
+
+/* The layer marker above a section: a Roman numeral and the product name. */
+.layer{ display:flex; align-items:baseline; gap:.85rem; margin:0 0 .5rem }
+.layer .num{ font:400 .8125rem/1 var(--mono); letter-spacing:.14em; color:var(--accent) }
+
+/* ── the band of numbers ───────────────────────────────────────────────── */
+/* The numbers are set large and in old style: this is a specification, not
+   decoration. */
+.facts{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(1.5rem,4vw,3.5rem);
+  padding:clamp(2.5rem,5vw,3.75rem) 0 }
+.fact .n{ display:block; font:400 clamp(2rem,1.2rem + 2.2vw,3rem)/1 var(--serif);
+  letter-spacing:-.02em; font-variant-numeric:lining-nums tabular-nums; margin-bottom:.55rem }
+.fact .d{ display:block; font:400 .8125rem/1.5 var(--mono); color:var(--ink-soft) }
+.fact .i{ font-style:normal; color:var(--accent) }
+
+/* ── the table of methods ──────────────────────────────────────────────── */
+.methods{ padding:clamp(3rem,6vw,5rem) 0 }
+.methods .head{ display:flex; justify-content:space-between; align-items:baseline;
+  gap:1.5rem; margin:0 0 2rem; flex-wrap:wrap }
+.methods h2{ margin:0; line-height:1.12; font-weight:400; font-size:1.75rem; letter-spacing:-.01em }
+.rows{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 clamp(2rem,5vw,4.5rem) }
+.row{ display:flex; align-items:baseline; gap:.7rem; padding:.72rem 0;
+  border-bottom:1px solid var(--rule) }
+.row .call{ min-width:0; font:400 .875rem/1.4 var(--mono);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.row .call b{ font-weight:400; color:var(--accent) }
+.row .dots{ flex:1 1 auto; border-bottom:1px dotted var(--rule); transform:translateY(-.28em) }
+.row .val{ font:400 .875rem/1.4 var(--mono); color:var(--ink-soft);
+  font-variant-numeric:tabular-nums; white-space:nowrap }
+
+/* ── the accelerator callout ───────────────────────────────────────────── */
+/*
+  The accelerator is not a layer of its own: it does not exist without the
+  parser and changes no line except the class name. So it is shown as a property
+  of layer I - two lines that differ by exactly one word.
+*/
+.swap{ margin:2.5rem 0 0; display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,.85fr); gap:clamp(1.5rem,3vw,2.5rem);
+  align-items:center }
+.swap pre{ margin:0 }
+/* The note under a callout. The rule is not tied to .swap: the same paragraph
+   sits under the priority console, and needs the same setting there. */
+.said{ color:var(--ink-soft); font-size:.9375rem; line-height:1.6;
+  text-align:justify; hyphens:auto; -webkit-hyphens:auto; margin:0 }
+.said b{ font-weight:400; color:var(--ink) }
+.prio + .said{ margin-top:1.1rem }
+.swap pre .same{ color:var(--ink-soft) }
+.swap pre .diff{ color:var(--accent) }
+
+/* ── the atlas ─────────────────────────────────────────────────────────── */
+.atlas{ padding:clamp(3rem,6vw,5rem) 0 }
+/*
+  The heading on the left, the prose on the right. The text must not be
+  stretched across the full width - a line would hold more than 110 characters,
+  and a readable measure ends at about 75. So the empty space is not removed but
+  taken up by the heading.
+*/
+.atlas .head,.tool .head{ display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  gap:clamp(1.5rem,4vw,4rem); align-items:start; margin:0 0 2.5rem }
+.head-l h2{ max-width:15ch; text-wrap:balance }
+.head-r p + p{ margin-top:1rem }
+.atlas h2{ margin:.6rem 0 .7rem; font-weight:400; line-height:1.12; font-size:clamp(1.75rem,1.2rem + 1.4vw,2.4rem);
+  letter-spacing:-.015em }
+.atlas p a.link{ color:var(--accent); border-bottom:1px solid var(--rule);
+  padding-bottom:1px; transition:border-color .18s }
+.atlas p a.link:hover{ border-color:var(--accent) }
+.atlas .head-r p{ margin:0; color:var(--ink-soft); max-width:62ch;
+  text-align:justify; hyphens:auto; -webkit-hyphens:auto }
+.grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(1rem,2.2vw,1.75rem) }
+/* A full-width band: the curve gets its proportions, the caption gets room. */
+.band{ margin:clamp(1rem,2.2vw,1.75rem) 0 0 }
+.band svg{ aspect-ratio:4/1 }
+.band .caption{ min-height:0 }
+.band .caption .fx{ -webkit-line-clamp:2 }
+
+/* ── layer III: the plugin ─────────────────────────────────────────────── */
+.tool{ padding:clamp(3rem,6vw,5rem) 0 }
+
+.tool h2{ margin:.6rem 0 .7rem; font-weight:400; line-height:1.12;
+  font-size:clamp(1.75rem,1.2rem + 1.4vw,2.4rem); letter-spacing:-.015em }
+.tool .intro{ margin:0; color:var(--ink-soft); max-width:62ch;
+  text-align:justify; hyphens:auto; -webkit-hyphens:auto }
+.tool .body{ display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr);
+  gap:clamp(2rem,5vw,4rem); align-items:start }
+/*
+  The way into the live demo. A screenshot would go here, but the demo really
+  runs, and in the reader's own browser: the frame leads into it instead of
+  showing a picture of something that can be touched anyway.
+*/
+.shot{ background:var(--plate); border:1px solid var(--rule); aspect-ratio:16/10;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:2rem; gap:.6rem; transition:.18s }
+.shot:hover{ border-color:var(--accent); background:var(--paper) }
+.shot .t{ font-size:1.5rem; line-height:1.15; letter-spacing:-.012em }
+.shot .d{ color:var(--ink-soft); font-size:.9375rem; line-height:1.6; max-width:34ch }
+.shot:hover .t{ color:var(--accent) }
+.feats{ display:grid; gap:0 }
+.feats div{ display:grid; grid-template-columns:minmax(0,7.5rem) minmax(0,1fr);
+  gap:1rem; padding:.85rem 0; border-top:1px solid var(--rule) }
+.feats div:last-child{ border-bottom:1px solid var(--rule) }
+.feats .k{ font:400 .8125rem/1.5 var(--mono); letter-spacing:.04em }
+.feats .v{ color:var(--ink-soft); font-size:.9375rem; line-height:1.5;
+  text-align:justify; hyphens:auto; -webkit-hyphens:auto }
+
+/* ── quick start ───────────────────────────────────────────────────────── */
+.start{ padding:clamp(3rem,6vw,5rem) 0; display:grid;
+  grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:clamp(2rem,5vw,4rem) }
+.start h2{ margin:.6rem 0 1.5rem; font-weight:400; line-height:1.12; font-size:1.75rem; letter-spacing:-.01em }
+pre{ margin:0; padding:1.35rem 1.5rem; background:var(--plate);
+  border:1px solid var(--rule); overflow-x:auto;
+  font:400 .875rem/1.85 var(--mono); font-variant-numeric:tabular-nums }
+pre .kw{ color:var(--accent) } pre .st{ color:var(--pen-green) } pre .cm{ color:var(--ink-soft) }
+.deeper{ display:flex; flex-direction:column; gap:0; align-self:start }
+.deeper a{ display:block; padding:1.15rem 0; border-top:1px solid var(--rule); transition:.18s }
+.deeper a:last-child{ border-bottom:1px solid var(--rule) }
+.deeper a:hover{ padding-left:.5rem; color:var(--accent) }
+.deeper .t{ font-size:1.0625rem } .deeper .d{ color:var(--ink-soft); font-size:.9375rem }
+
+/* ── the colophon ──────────────────────────────────────────────────────── */
+footer{ padding:2.5rem 0 4rem; display:flex; justify-content:space-between;
+  gap:1.5rem; flex-wrap:wrap; align-items:baseline }
+
+@media (max-width:62rem){
+  .hero,.start,.tool .body,.swap,.atlas .head,.tool .head{ grid-template-columns:1fr }
+  .head-l h2{ max-width:none }
+  .bom a{ grid-template-columns:2.5rem minmax(0,1fr); gap:.25rem 1rem }
+  .bom .what{ grid-column:2 } .bom .dep{ grid-column:2; text-align:left }
+  .grid{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .rows{ grid-template-columns:minmax(0,1fr) }
+  .facts{ grid-template-columns:repeat(2,minmax(0,1fr)) }
+}
+@media (max-width:36rem){
+  .grid{ grid-template-columns:minmax(0,1fr) }
+  .masthead nav{ gap:1.1rem }
+  /* The call and the result each on their own line; no leaders needed. */
+  .row{ flex-wrap:wrap; gap:.2rem .7rem }
+  .row .dots{ display:none }
+  .row .call{ flex:1 0 100%; white-space:normal; overflow:visible;
+    text-overflow:clip; overflow-wrap:anywhere }
+  .row .val{ margin-left:auto }
+}
+/* ── the reference pages ───────────────────────────────────────────────── */
+/*
+  The same drawing means as on the showcase: hairlines, monospaced labels,
+  tabular figures. Nothing new is introduced - these are pages of one sheet.
+*/
+.doc{ padding:clamp(2.5rem,5vw,4rem) 0 }
+.doc-head{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  gap:clamp(1.5rem,4vw,4rem); align-items:start; margin:0 0 3rem }
+.doc-head h1{ font-size:clamp(2.2rem,1.4rem + 2.6vw,3.4rem); margin:.5rem 0 0;
+  line-height:1.08; max-width:16ch }
+.doc-head .sub{ margin:0; color:var(--ink-soft); max-width:62ch;
+  text-align:justify; hyphens:auto; -webkit-hyphens:auto }
+.doc-head .sub + .sub{ margin-top:1rem }
+
+.doc h2{ margin:3rem 0 1.25rem; font-weight:400; line-height:1.12;
+  font-size:clamp(1.5rem,1.1rem + 1.1vw,2rem); letter-spacing:-.012em }
+.doc h3{ margin:2rem 0 .75rem; font-weight:400; line-height:1.2; font-size:1.25rem }
+/*
+  One measure for the whole page. The limit used to apply to paragraphs only, so
+  the text took half the sheet while the tables ran full width and the sheet
+  looked lopsided. Now headings, prose, tables and callouts all end at the same
+  right edge; the grid of functions is deliberately wider, since those are
+  columns rather than reading.
+*/
+.doc h2,.doc h3,.doc p,.doc .tw,.doc .gotcha{ max-width:78ch }
+.doc p{ margin:0 0 1rem; text-align:justify;
+  hyphens:auto; -webkit-hyphens:auto }
+.doc p.wide{ max-width:none }
+
+/* Monospaced text is smaller than the body by default - matched to the line. */
+.doc code{ font:400 .9em/1 var(--mono); overflow-wrap:anywhere }
+.doc .note{ color:var(--ink-soft) }
+
+/* A table: hairlines, monospaced code, tabular figures. */
+table{ width:100%; border-collapse:collapse; margin:0 0 1.5rem;
+  font-variant-numeric:tabular-nums }
+th,td{ text-align:left; padding:.7rem .9rem .7rem 0; border-top:1px solid var(--rule);
+  vertical-align:baseline }
+th{ font:400 .6875rem/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-soft); padding-top:0; border-top:0; padding-bottom:.85rem }
+tbody tr:last-child td{ border-bottom:1px solid var(--rule) }
+td code,td .m{ font:400 .875rem/1.5 var(--mono) }
+td .m{ color:var(--accent) }
+td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
+.tw{ overflow-x:auto }
+
+/* A warning callout: the things people trip over. */
+.gotcha{ border-left:2px solid var(--pen-amber); background:var(--plate);
+  padding:1.1rem 1.3rem; margin:0 0 1.5rem }
+.gotcha p{ margin:0; max-width:66ch }
+.gotcha p + p{ margin-top:.6rem }
+.gotcha .k{ font:400 .6875rem/1 var(--mono); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--pen-amber); display:block; margin-bottom:.6rem }
+
+/* The list of functions by section. */
+.fx-groups{ display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));
+  gap:1.75rem 2.5rem }
+.fx-group h3{ margin:0 0 .5rem; font-size:1rem }
+.fx-group .cnt{ color:var(--ink-soft); font:400 .75rem/1 var(--mono); margin-left:.5rem }
+.fx-group .list{ font:400 .8125rem/1.85 var(--mono); color:var(--ink-soft);
+  overflow-wrap:anywhere }
+
+@media (max-width:62rem){
+  .doc-head{ grid-template-columns:1fr }
+  .doc-head h1{ max-width:none }
+}
+
+/* ── the priority console: operators as data ───────────────────────────── */
+.prio{ margin:1.5rem 0 0; border:1px solid var(--rule); background:var(--plate) }
+.prio .bar{ display:flex; flex-wrap:wrap; gap:.6rem 1rem; align-items:baseline;
+  padding:.85rem 1.1rem; border-bottom:1px solid var(--rule) }
+.prio input{ flex:1 1 14rem; min-width:0; font:400 1.05rem/1.4 var(--mono);
+  color:var(--ink); background:transparent; border:0;
+  border-bottom:1px solid var(--rule); padding:.2rem 0; outline:none }
+.prio input:focus{ border-bottom-color:var(--accent) }
+.prio .chips{ display:flex; flex-wrap:wrap; gap:.5rem; padding:.85rem 1.1rem;
+  border-bottom:1px solid var(--rule) }
+.chip{ display:flex; align-items:center; gap:.5rem; border:1px solid var(--rule);
+  padding:.3rem .55rem; background:var(--paper) }
+.chip .op{ font:400 1rem/1 var(--mono); color:var(--accent); min-width:1.6ch; text-align:center }
+.chip .lvl{ display:flex; gap:2px }
+.chip .lvl button{ font:400 .625rem/1 var(--mono); letter-spacing:.07em; padding:.32rem .45rem;
+  border:1px solid var(--rule); background:transparent; color:var(--ink-soft);
+  cursor:pointer; transition:all .15s }
+.chip .lvl button:hover{ color:var(--ink) }
+.chip .lvl button[aria-pressed="true"]{ background:var(--accent);
+  border-color:var(--accent); color:var(--paper) }
+.prio .rows{ padding:.85rem 1.1rem; display:grid; gap:.45rem }
+.prio .row{ display:flex; gap:1rem; align-items:baseline }
+.prio .row .k{ font:400 .6875rem/1 var(--mono); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-soft); min-width:7rem; flex:none }
+.prio .row .v{ font:400 1.05rem/1.5 var(--mono); overflow-wrap:anywhere }
+.prio .row .v.err{ color:var(--pen-red) }
+.prio .boot{ margin:.85rem 1.1rem }
+/* The second control of a chip - the reach - is separated from the priority by
+   a hairline. */
+.chip .lvl.cov{ margin-left:.3rem; padding-left:.5rem; border-left:1px solid var(--rule) }
+/* Micro-labels for the controls and wrapping: a chip can fold on narrow
+   screens. */
+.chip{ flex-wrap:wrap }
+.knob{ display:flex; flex-direction:column; gap:3px }
+.knob .k{ font:400 .5625rem/1 var(--mono); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-soft); cursor:help }
+.prio .pres{ display:flex; gap:.4rem; align-items:baseline; flex-wrap:wrap }
+.prio .pres button{ font:400 .75rem/1 var(--mono); padding:.3rem .5rem;
+  border:1px solid var(--rule); background:transparent; color:var(--ink-soft);
+  cursor:pointer; transition:all .15s }
+.prio .pres button:hover{ color:var(--ink); border-color:var(--ink) }
+
+/* ── the release log ───────────────────────────────────────────────────── */
+/*
+  A specification of releases: the label and the date on the left, what was
+  added and what was fixed on the right. The same grid as the layer list, so the
+  sheet reads as one document rather than a set of unrelated blocks.
+*/
+.log{ padding:clamp(2.5rem,5vw,4rem) 0 }
+.log .head{ display:flex; justify-content:space-between; align-items:baseline;
+  gap:1.5rem; margin:0 0 1.75rem; flex-wrap:wrap }
+.log h2{ margin:0; line-height:1.12; font-weight:400; font-size:1.75rem; letter-spacing:-.01em }
+.rel{ display:grid; grid-template-columns:minmax(0,10rem) minmax(0,1fr);
+  gap:1.5rem clamp(1.5rem,4vw,3rem); padding:1.4rem 0; border-top:1px solid var(--rule) }
+.rel:last-child{ border-bottom:1px solid var(--rule) }
+.rel .when{ display:flex; flex-direction:column; gap:.3rem }
+.rel .tag{ font:400 .875rem/1 var(--mono); color:var(--accent); letter-spacing:.04em }
+.rel .date{ font:400 .6875rem/1 var(--mono); letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-soft) }
+.rel h3{ margin:0 0 .9rem; font-weight:400; font-size:1.25rem; line-height:1.2 }
+.rel .kind{ margin:1rem 0 .4rem; font:400 .6875rem/1 var(--mono); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-soft) }
+.rel .kind:first-of-type{ margin-top:0 }
+/*
+  A two-column list. In one column it ran into the readable measure and left the
+  right half of the sheet empty; columns take up the width while the line stays
+  short.
+*/
+.rel ul{ margin:0; padding-left:1.1rem; columns:2; column-gap:clamp(1.5rem,4vw,3rem) }
+.rel li{ margin:0 0 .5rem; color:var(--ink-soft); line-height:1.6;
+  text-align:justify; hyphens:auto;
+  break-inside:avoid; text-align:justify; hyphens:auto; -webkit-hyphens:auto }
+@media (max-width:56rem){ .rel ul{ columns:1 } }
+@media (max-width:48rem){ .rel{ grid-template-columns:1fr } }
+
+/* ── the steps of a scenario ─────────────────────────────────────────────── */
+/*
+  A numbered list with a large numeral in the margin: a person reads the page
+  top to bottom and should see how many steps are left without counting them.
+*/
+.steps{ counter-reset:step; list-style:none; margin:1.25rem 0 2rem; padding:0 }
+.steps li{
+  counter-increment:step; position:relative;
+  padding:0 0 1.15rem 3.25rem; margin:0 0 1.15rem;
+  border-bottom:1px solid var(--rule);
+}
+.steps li:last-child{ border-bottom:0; margin-bottom:0 }
+.steps li::before{
+  content:counter(step); position:absolute; left:0; top:-.1rem;
+  font:400 1.5rem/1 var(--serif); color:var(--accent);
+  font-variant-numeric:oldstyle-nums;
+}
+.steps h4{
+  margin:0 0 .45rem; font-weight:400; font-size:1.0625rem; line-height:1.3;
+}
+.steps p{ margin:0 0 .5rem; color:var(--ink-soft); text-align:justify; hyphens:auto }
+.steps pre{ margin:.6rem 0 0 }
+
+/* A shell command: the same plate as a listing, but without Pascal colouring. */
+pre.sh{
+  font:400 .875rem/1.7 var(--mono); background:var(--plate);
+  padding:.9rem 1.1rem; margin:1rem 0; overflow-x:auto;
+  border-left:2px solid var(--ink-faint); white-space:pre;
+}
+pre.sh .cm{ color:var(--ink-soft) }

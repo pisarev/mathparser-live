@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>A probe: Parser.pas in WebAssembly</title>
+<style>
+  body{ font:15px/1.5 Consolas,monospace; max-width:56rem; margin:2rem auto; padding:0 1rem }
+  .ok{ color:#0a7a2f } .bad{ color:#b3261e } .dim{ color:#777 }
+  td{ padding:.2rem .8rem .2rem 0; vertical-align:top }
+</style>
+</head>
+<body>
+<h1>The real Parser.pas, computed by the browser</h1>
+<div id="log">loading parsewasm.wasm...</div>
+<table id="out"></table>
+
+<script>
+"use strict";
+
+/*
+  A minimal WASI shim for the browser. There are no files and no environment:
+  almost everything answers 58 (NOTSUP) or 8 (BADF). Four things really work:
+  writing to the console, the clock, random bytes, and "the environment is
+  empty".
+*/
+function makeWasi(getMemory) {
+  const NOSUP = 58, BADF = 8, OK = 0;
+  const td = new TextDecoder();
+  const view = () => new DataView(getMemory().buffer);
+
+  function fdWrite(fd, iovs, count, written) {
+    const v = view();
+    let total = 0, text = "";
+    for (let i = 0; i < count; i++) {
+      const ptr = v.getUint32(iovs + i * 8, true);
+      const len = v.getUint32(iovs + i * 8 + 4, true);
+      text += td.decode(new Uint8Array(getMemory().buffer, ptr, len));
+      total += len;
+    }
+    if (text.trim()) console.log("[wasm]", text);
+    v.setUint32(written, total, true);
+    return OK;
+  }
+
+  return {
+    args_get: () => OK,
+    args_sizes_get: (argc, size) => { const v = view(); v.setUint32(argc, 0, true); v.setUint32(size, 0, true); return OK; },
+    environ_get: () => OK,
+    environ_sizes_get: (cnt, size) => { const v = view(); v.setUint32(cnt, 0, true); v.setUint32(size, 0, true); return OK; },
+    clock_time_get: (id, prec, out) => { view().setBigUint64(out, BigInt(Math.round(performance.now() * 1e6)), true); return OK; },
+    fd_close: () => BADF, fd_fdstat_get: () => BADF, fd_filestat_get: () => BADF,
+    fd_filestat_set_size: () => BADF, fd_filestat_set_times: () => BADF,
+    fd_prestat_get: () => BADF, fd_prestat_dir_name: () => BADF,
+    fd_read: () => BADF, fd_readdir: () => BADF, fd_seek: () => BADF, fd_tell: () => BADF,
+    fd_write: fdWrite,
+    path_create_directory: () => NOSUP, path_filestat_get: () => NOSUP,
+    path_filestat_set_times: () => NOSUP, path_open: () => NOSUP,
+    path_readlink: () => NOSUP, path_remove_directory: () => NOSUP,
+    path_rename: () => NOSUP, path_unlink_file: () => NOSUP,
+    poll_oneoff: () => NOSUP,
+    proc_exit: code => { throw new Error("wasm proc_exit " + code); },
+    random_get: (ptr, len) => { crypto.getRandomValues(new Uint8Array(getMemory().buffer, ptr, len)); return OK; }
+  };
+}
+
+/* A wrapper over the engine: strings in, numbers out */
+class Engine {
+  constructor(instance) {
+    this.e = instance.exports;
+    this.enc = new TextEncoder();
+    this.dec = new TextDecoder();
+  }
+  prepare(formula) {
+    const bytes = this.enc.encode(formula);
+    const ptr = this.e.walloc(bytes.length);
+    new Uint8Array(this.e.memory.buffer, ptr, bytes.length).set(bytes);
+    const slot = this.e.prepare(ptr, bytes.length);
+    this.e.wfree(ptr);
+    if (slot < 0) throw new Error(this.note());
+    return slot;
+  }
+  note() {
+    const cap = 512, ptr = this.e.walloc(cap);
+    const n = this.e.note(ptr, cap);
+    const s = this.dec.decode(new Uint8Array(this.e.memory.buffer, ptr, n));
+    this.e.wfree(ptr);
+    return s || "parse error";
+  }
+  evalAt(slot, x) { return this.e.evalat(slot, x); }
+  sample(slot, lo, hi, count) {
+    const ptr = this.e.walloc(count * 8);
+    const good = this.e.sample(slot, lo, hi, count, ptr);
+    const out = new Float64Array(this.e.memory.buffer.slice(ptr, ptr + count * 8));
+    this.e.wfree(ptr);
+    return { values: out, good };
+  }
+  drop(slot) { this.e.drop(slot); }
+}
+
+const row = (name, got, want) => {
+  const tr = document.createElement("tr");
+  const pass = want === undefined || want(got);
+  tr.innerHTML = "<td>" + name + "</td><td class='" + (pass ? "ok" : "bad") + "'>" +
+    got + (pass ? "" : " - NOT WHAT WAS EXPECTED") + "</td>";
+  document.getElementById("out").appendChild(tr);
+};
+
+(async () => {
+  const log = document.getElementById("log");
+  try {
+    let memory;
+    const wasi = makeWasi(() => memory);
+    const { instance } = await WebAssembly.instantiateStreaming(
+      fetch("parsewasm.wasm"), { wasi_snapshot_preview1: wasi });
+    memory = instance.exports.memory;
+    const t0 = performance.now();
+    instance.exports._initialize();       // unit initialisation plus the library body
+    const initMs = (performance.now() - t0).toFixed(1);
+    log.textContent = "the engine is up, initialisation " + initMs + " ms";
+    const eng = new Engine(instance);
+
+    // arithmetic
+    let s = eng.prepare("2 + 2");
+    row("2 + 2", eng.evalAt(s, 0), v => v === 4); eng.drop(s);
+
+    s = eng.prepare("2 ** 10");
+    row("2 ** 10", eng.evalAt(s, 0), v => v === 1024); eng.drop(s);
+
+    s = eng.prepare("Sin(1) + Sqrt(2)");
+    row("Sin(1) + Sqrt(2)", eng.evalAt(s, 0),
+      v => Math.abs(v - (Math.sin(1) + Math.SQRT2)) < 1e-12); eng.drop(s);
+
+    // a variable and a batch computation
+    s = eng.prepare("Sin(X) * Exp(-X / 8)");
+    const r = eng.sample(s, 0, 2 * Math.PI, 9);
+    row("sample Sin(X)*Exp(-X/8), 9 points",
+      Array.from(r.values).map(v => v.toFixed(3)).join(" "),
+      () => r.good === 9 && Math.abs(r.values[0]) < 1e-12);
+    eng.drop(s);
+
+    // division by zero gives NaN and lifts the pen
+    s = eng.prepare("1 / X");
+    const z = eng.sample(s, -1, 1, 3);
+    row("1/X at zero", Array.from(z.values).map(v => "" + v).join(" "),
+      () => !isFinite(z.values[1]) || Math.abs(z.values[1]) > 1e12);
+    eng.drop(s);
+
+    // a parse error
+    let err = "not caught";
+    try { eng.prepare("Sin("); } catch (e) { err = e.message; }
+    row("Sin( - a parse error", err, v => v !== "not caught");
+
+    // speed: a thousand evaluations of a prepared formula
+    s = eng.prepare("X * 2 + 1");
+    const t1 = performance.now();
+    let acc = 0;
+    for (let i = 0; i < 1000; i++) acc += eng.evalAt(s, i);
+    const dt = performance.now() - t1;
+    row("1000 evaluations of X*2+1", dt.toFixed(1) + " ms (" + (dt * 1000).toFixed(0) + " ns each), sum " + acc,
+      () => acc === 1000000);
+    eng.drop(s);
+
+    log.textContent = "the engine came up in " + initMs + " ms - every run is below";
+  } catch (e) {
+    log.innerHTML = "<span class='bad'>CRASH: " + e.message + "</span>";
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
