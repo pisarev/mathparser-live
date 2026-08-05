@@ -274,6 +274,10 @@ function findOverlaps() {
     if (out.length < LIMIT) out.push({ x: p.x, y: p.y, a: a, b: b, arg: arg });
   };
 
+  // The argument step of a grid: the sampling is uniform.
+  const step = G => G.xs.length > 1
+    ? Math.abs(G.xs[G.xs.length - 1] - G.xs[0]) / (G.xs.length - 1) : 0;
+
   const at = (G, k) => G.polar
     ? { x: G.ys[k] * Math.cos(G.xs[k]), y: G.ys[k] * Math.sin(G.xs[k]) }
     : { x: G.xs[k], y: G.ys[k] };
@@ -391,18 +395,29 @@ function findOverlaps() {
               seen[l] = mark;
               const r = at(B, l), s = at(B, l + 1);
               if (segmentsAside(p, q, r, s) > chord) continue;
+              /*
+                Closeness for the indistinguishable-stretch detector is the
+                distance from the MIDPOINT of the segment to the other curve.
+                On truly coinciding curves every midpoint lies on the other
+                one; a curve that merely CROSSES stands aside between the
+                crossings. "Crossed means zero" chained crossed segments of a
+                coarse fast curve into a false stretch and silenced its real
+                crossings.
+              */
+              const mid = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+              const foot = nearestOnSegment(mid, r, s);
+              const midGap = Math.hypot(mid.x - foot.x, mid.y - foot.y);
+              if (midGap < close[k]) close[k] = midGap;
               let value = segmentCross(p, q, r, s);
               if (!value) {
 
                 const got = segmentsGap(p, q, r, s);
                 if (got.gap < gap[k]) { gap[k] = got.gap; gapPoint[k] = got.point; gapMate[k] = l; }
-                if (got.gap < close[k]) close[k] = got.gap;
                 continue;
               }
               value = refine(A, B, A.xs[k], A.xs[k + 1], B.xs[l], B.xs[l + 1], value);
               pending.push({ point: value, k: k, chord: chord });
               crossed[k] = 1;
-              close[k] = 0;
             }
           }
       }
@@ -428,9 +443,18 @@ function findOverlaps() {
           m = n;
         }
       }
+      /*
+        A duplicate is the SAME crossing reported by neighbouring segment
+        pairs; refined points agree to a fraction of a thousandth. The merge
+        radius is the half-sum of the argument steps, as in the engine. The
+        chord of a segment is the wrong radius: on a coarsely sampled fast
+        curve it reaches tenths of a unit, and genuinely distinct neighbouring
+        crossings sit closer than that - they were being eaten as duplicates.
+      */
+      const grain = (step(A) + step(B)) / 2;
       for (const item of pending) {
         if (sameFlag[item.k]) continue;
-        put(item.point, item.chord, a, b, A.xs[item.k]);
+        put(item.point, grain, a, b, A.xs[item.k]);
       }
       
       for (let k = 1; k + 1 < gap.length; k++) {
@@ -880,7 +904,7 @@ function handle(m) {
         put the built-in example back on top of a blank sheet somebody had made
         deliberately.
       */
-      try { localStorage.setItem(STATE_KEY, JSON.stringify({ cs: m.cs, formulas: m.formulas, options: m.options, cleared: !!m.cleared })); }
+      try { localStorage.setItem(STATE_KEY, JSON.stringify({ cs: m.cs, formulas: m.formulas, options: m.options, cleared: !!m.cleared, sheets: m.sheets })); }
       catch (e) {}
       break;
     case "trace": doTrace(m); break;

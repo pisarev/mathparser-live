@@ -12,8 +12,7 @@ program export_curves;
 
 uses
   {$IFDEF UNIX}{$IFDEF FPC}cthreads,{$ENDIF}{$ENDIF}
-  SysUtils, Math, StrUtils, Classes,
-  Parser, ParseTypes, ValueTypes, ValueUtils;
+  SysUtils, Math, StrUtils, Classes, Parser, ParseTypes, ValueTypes, ValueUtils;
 
 type
   TCurve = record
@@ -117,7 +116,10 @@ begin
     for I := 0 to C.Steps do
     begin
       U := C.Lo + (C.Hi - C.Lo) * I / C.Steps;
-      if C.Polar then TVar := U else XVar := U;
+      if C.Polar then
+        TVar := U
+      else
+        XVar := U;
       Broke := False;
       Value := NaN;
       try
