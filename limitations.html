@@ -375,7 +375,8 @@ td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
   gap:1.5rem clamp(1.5rem,4vw,3rem); padding:1.4rem 0; border-top:1px solid var(--rule) }
 .rel:last-child{ border-bottom:1px solid var(--rule) }
 .rel .when{ display:flex; flex-direction:column; gap:.3rem }
-.rel .tag{ font:400 .875rem/1 var(--mono); color:var(--accent); letter-spacing:.04em }
+.rel .tag{ font:400 .875rem/1 var(--mono); color:var(--accent); letter-spacing:.04em; text-decoration:none; border-bottom:1px solid transparent }
+.rel a.tag:hover{ border-bottom-color:currentColor }
 .rel .date{ font:400 .6875rem/1 var(--mono); letter-spacing:.12em;
   text-transform:uppercase; color:var(--ink-soft) }
 .rel h3{ margin:0 0 .9rem; font-weight:400; font-size:1.25rem; line-height:1.2 }
@@ -477,23 +478,32 @@ pre.sh .cm{ color:var(--ink-soft) }
     <div class="tw"><table>
       <thead><tr><th>Does not</th><th>Consequence</th></tr></thead>
       <tbody>
-      <tr><td>Run anywhere but x86-64</td><td>on ARM or 32-bit the interpreter answers, at interpreter speed</td></tr>
-      <tr><td>Compile loops to machine code</td><td>a formula whose hot part is a loop gets no benefit</td></tr>
+      <tr><td>Run anywhere but x86-64</td><td>on ARM or 32-bit the IR executor answers instead - two to three times the interpreter, not the interpreter itself</td></tr>
       <tr><td>Compile functions that take parameters</td><td><code>mean</code>, <code>poly</code> and friends fall back</td></tr>
       <tr><td>Key its cache by shape</td><td>two formulas differing only in a constant compile twice</td></tr>
-      <tr><td>Invalidate on registry change</td><td>call <code>ClearCode</code> yourself after adding a function</td></tr>
       </tbody>
     </table></div>
 
     <h2>Threads</h2>
-    <p>Evaluation is thread-safe once everything is registered. Registration itself
-      is not: adding a function or a variable while another thread is evaluating is
-      undefined. The contract is simple and worth stating -
+    <p><b>TMathParser.</b> Evaluation is thread-safe once everything is registered.
+      Registration itself is not: adding a function or a variable while another
+      thread is evaluating is undefined. The contract is simple and worth stating -
       <b>register everything before the first evaluation</b>, then evaluate from as
       many threads as you like.</p>
-    <p>For per-thread values there is a redirect mechanism: one compiled script,
-      each thread reading its own variables. That is how the plotting component
-      samples a curve across four threads without four parsers.</p>
+    <p><b>TJitParser is different, and the difference matters.</b> The accelerator
+      keeps a cache: the text of the last formula, a list of compiled entries and
+      the counters beside it, all written on the first sight of a formula and none
+      of it under a lock. Two threads meeting a formula the cache has not seen will
+      both compile it and both write the list. One accelerating parser therefore
+      belongs to one thread.</p>
+    <p>The way to evaluate in parallel is the one the plotting component uses, and
+      it needs no locks at all: compile the scripts up front on a single thread
+      with <code>CompileScript</code>, then execute the compiled
+      <code>TJitScript</code> from as many threads as you like. A compiled script
+      does not change while it runs. For values that differ per thread there is a
+      redirect mechanism: one compiled script, each thread reading its own
+      variables. That is how a curve is sampled across four threads without four
+      parsers.</p>
 
     <h2>Plotting</h2>
     <div class="tw"><table>
@@ -515,7 +525,8 @@ pre.sh .cm{ color:var(--ink-soft) }
 
   <footer class="label">
     <div>MIT licensed &middot; Delphi &amp; Free Pascal &middot; Windows &amp; Linux</div>
-    <div>Draft preview - not published</div>
+    <div><a href="https://github.com/pisarev/pascal-mathparser">Source on GitHub</a>
+      &middot; <a href="index.html#releases">Releases</a></div>
   </footer>
 
 </div>

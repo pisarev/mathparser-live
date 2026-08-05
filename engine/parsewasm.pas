@@ -9,14 +9,15 @@ library parsewasm;
 
 {$IFDEF FPC}{$MODE DELPHI}{$ENDIF}
 
-uses
-  SysUtils, Math, Parser, ParseTypes, ParseUtils, ValueTypes, ValueUtils;
+uses SysUtils, Math, Parser, ParseTypes, ParseUtils, ValueTypes, ValueUtils;
 
 const
   MaxSlots = 64;
+  DefaultLoopLimit = 1000000;
 
 var
   P: TMathParser;
+  LoopLimit: NativeInt = DefaultLoopLimit;
   VarX, VarT: Double;
   Slots: array[0..MaxSlots - 1] of record
     Used: Boolean;
@@ -74,6 +75,7 @@ begin
     Exit(NaN);
   VarX := X;
   VarT := X;
+  ParseLoopLeft := LoopLimit;
   try
     Result := GetDouble(P.ExecuteScript(Slots[Slot].Script)^);
   except
@@ -93,6 +95,7 @@ begin
   else
     Step := 0;
   Good := 0;
+  ParseLoopLeft := LoopLimit;
   for I := 0 to Count - 1 do
   begin
     VarX := Lo + Step * I;
@@ -177,6 +180,11 @@ begin
   end;
 end;
 
+procedure WLoopLimit(Limit: LongInt); cdecl;
+begin
+  if Limit >= 0 then LoopLimit := Limit;
+end;
+
 procedure WPrioritize(Flag: LongInt); cdecl;
 begin
   P.Prioritize := Flag <> 0;
@@ -193,7 +201,8 @@ exports
   WOps name 'ops',
   WOpSet name 'opset',
   WUnparse name 'unparse',
-  WPrioritize name 'prioritize';
+  WPrioritize name 'prioritize',
+  WLoopLimit name 'looplimit';
 
 begin
   P := TMathParser.Create(nil);

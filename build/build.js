@@ -187,7 +187,8 @@ ${opts.body}
 
   <footer class="label">
     <div>MIT licensed &middot; Delphi &amp; Free Pascal &middot; Windows &amp; Linux</div>
-    <div>Draft preview - not published</div>
+    <div><a href="https://github.com/pisarev/pascal-mathparser">Source on GitHub</a>
+      &middot; <a href="index.html#releases">Releases</a></div>
   </footer>
 
 </div>
@@ -268,10 +269,13 @@ const METHODS = [
 */
 const RELEASES = [
   {
-    tag: 'r20260726', date: '26 July 2026', title: 'First public release',
+    tag: 'v1.0.0', date: '4 August 2026', title: 'First public release',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.0',
     added: [
       'MathParser: parser, flat bytecode, interpreter, shape cache, 163 callable functions',
       'The accelerator: x86-64 machine code with an automatic fall back to the interpreter',
+      'CrossGraph: a plotting engine and a visual component for Delphi and Lazarus',
+      'A plugin for Notepad++, built with Lazarus and Free Pascal - <a href="https://github.com/pisarev/graphbuilder-npp/releases/latest">ready to download</a>',
       'A live demo that runs the real engine in the browser, compiled to WebAssembly',
       'Reference pages for syntax, the accelerator and the limitations',
       'Build matrix across Delphi win32 and win64, FPC on Windows and Linux',
@@ -507,7 +511,7 @@ const indexBody = `  <section class="hero">
     </div>
     ${RELEASES.map(r => `<article class="rel">
       <div class="when">
-        <span class="tag">${r.tag}</span>
+        <a class="tag" href="${r.link}">${r.tag}</a>
         <span class="date">${r.date}</span>
       </div>
       <div class="what">

@@ -29,7 +29,6 @@ type
 
 const
   Pi2 = Pi * 2;
-
   Curves: array[0..17] of TCurve = (
     (Key: 'maurer-6-71'; Title: 'Maurer rose · n=6, d=71';
     Formula: 'Sin (6 * T)'; Polar: True; Lo: 0; Hi: 142 * Pi; Steps: 360; Clamp: 4; MaxJump: 0),
@@ -112,7 +111,6 @@ begin
         Exit('{"ok":false}');
       end;
     end;
-
     HasPrev := False;
     PrevX := 0;
     PrevY := 0;
@@ -127,14 +125,12 @@ begin
       except
         Broke := True;
       end;
-
       if Broke or IsNan(Value) or IsInfinite(Value) or (Abs(Value) > C.Clamp) then
       begin
         FlushSeg;
         HasPrev := False;
         Continue;
       end;
-
       if C.Polar then
       begin
         Vx := Value * Cos(U);
@@ -144,17 +140,14 @@ begin
         Vx := U;
         Vy := Value;
       end;
-
       if HasPrev and (C.MaxJump > 0) and (Sqrt(Sqr(Vx - PrevX) + Sqr(Vy - PrevY)) > C.MaxJump) then
         FlushSeg;
-
       Cur.Add(Format('%.4f,%.4f', [Vx, Vy], TFormatSettings.Invariant));
       PrevX := Vx;
       PrevY := Vy;
       HasPrev := True;
     end;
     FlushSeg;
-
     Result := Format('{"ok":true,"polar":%s,"segs":[%s]}', [LowerCase(BoolToStr(C.Polar, True)), Segs.CommaText.Replace('"', '')]);
   finally
     Segs.Free; Cur.Free;
@@ -196,10 +189,8 @@ begin
     P.AddVariable('x', XVar);
     P.AddVariable('T', TVar);
     P.AddVariable('t', TVar);
-
     Writeln('=== the engine computes the curves ===');
     for I := Low(Curves) to High(Curves) do Emit(Curves[I]);
-
     Output.Insert(0, 'window.CURVES = [');
     Output.Add('];');
     Output.SaveToFile(ExtractFilePath(ParamStr(0)) + 'data.js');

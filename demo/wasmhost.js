@@ -820,7 +820,14 @@ const STATE_KEY = NS + "state";
 function savedState() {
   let s = null;
   try { s = JSON.parse(localStorage.getItem(STATE_KEY)); } catch (e) { return null; }
-  return (s && s.formulas && s.formulas.length) ? s : null;
+  /*
+    An empty list is a state too, when the person emptied it on purpose: the
+    page marks such emptiness. Without the mark, emptiness is discarded exactly
+    as before.
+  */
+  if (!s || !Array.isArray(s.formulas)) return null;
+  if (s.formulas.length === 0) return s.cleared ? s : null;
+  return s;
 }
 
 const MARKS_KEY = NS + "marks";
@@ -867,7 +874,13 @@ function handle(m) {
     }
     case "build":
       doBuild(m);
-      try { localStorage.setItem(STATE_KEY, JSON.stringify({ cs: m.cs, formulas: m.formulas, options: m.options })); }
+      /*
+        The "emptied by the user" mark travels with the state. Without it an
+        empty list is indistinguishable from accidental emptiness, and the page
+        put the built-in example back on top of a blank sheet somebody had made
+        deliberately.
+      */
+      try { localStorage.setItem(STATE_KEY, JSON.stringify({ cs: m.cs, formulas: m.formulas, options: m.options, cleared: !!m.cleared })); }
       catch (e) {}
       break;
     case "trace": doTrace(m); break;
@@ -907,6 +920,22 @@ async function engineBytes() {
       : await WebAssembly.instantiateStreaming(fetch("parsewasm.wasm"), imports);
     memory = instance.exports.memory;
     instance.exports._initialize();
+    /*
+      How many loop turns the engine is given for one curve.
+
+      A formula like While(1 = 1, ...) never ends on its own, and there is
+      nothing outside to interrupt the engine with: the module is
+      single-threaded, and while it computes this page runs nothing at all - no
+      timers, no repaint, no handlers. The tab dies in silence. A limit is the
+      only thing that stands in the way.
+
+      A million turns is about a second for a whole curve in the worst case
+      (measured: a thousand points of an endless formula are cut off in 0.85 s).
+      Ordinary formulas do not come close to spending that: a thousand points of
+      a sine take a millisecond, and a loop that honestly ends at every point
+      takes six.
+    */
+    instance.exports.looplimit(1000000);
     HOST.engine = new Engine(instance);
     
     const q = HOST.queue.splice(0);

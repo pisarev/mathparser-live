@@ -375,7 +375,8 @@ td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
   gap:1.5rem clamp(1.5rem,4vw,3rem); padding:1.4rem 0; border-top:1px solid var(--rule) }
 .rel:last-child{ border-bottom:1px solid var(--rule) }
 .rel .when{ display:flex; flex-direction:column; gap:.3rem }
-.rel .tag{ font:400 .875rem/1 var(--mono); color:var(--accent); letter-spacing:.04em }
+.rel .tag{ font:400 .875rem/1 var(--mono); color:var(--accent); letter-spacing:.04em; text-decoration:none; border-bottom:1px solid transparent }
+.rel a.tag:hover{ border-bottom-color:currentColor }
 .rel .date{ font:400 .6875rem/1 var(--mono); letter-spacing:.12em;
   text-transform:uppercase; color:var(--ink-soft) }
 .rel h3{ margin:0 0 .9rem; font-weight:400; font-size:1.25rem; line-height:1.2 }
@@ -692,7 +693,8 @@ pwsh -File build_wasm.ps1</pre>
 
   <footer class="label">
     <div>MIT licensed &middot; Delphi &amp; Free Pascal &middot; Windows &amp; Linux</div>
-    <div>Draft preview - not published</div>
+    <div><a href="https://github.com/pisarev/pascal-mathparser">Source on GitHub</a>
+      &middot; <a href="index.html#releases">Releases</a></div>
   </footer>
 
 </div>

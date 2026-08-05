@@ -375,7 +375,8 @@ td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
   gap:1.5rem clamp(1.5rem,4vw,3rem); padding:1.4rem 0; border-top:1px solid var(--rule) }
 .rel:last-child{ border-bottom:1px solid var(--rule) }
 .rel .when{ display:flex; flex-direction:column; gap:.3rem }
-.rel .tag{ font:400 .875rem/1 var(--mono); color:var(--accent); letter-spacing:.04em }
+.rel .tag{ font:400 .875rem/1 var(--mono); color:var(--accent); letter-spacing:.04em; text-decoration:none; border-bottom:1px solid transparent }
+.rel a.tag:hover{ border-bottom-color:currentColor }
 .rel .date{ font:400 .6875rem/1 var(--mono); letter-spacing:.12em;
   text-transform:uppercase; color:var(--ink-soft) }
 .rel h3{ margin:0 0 .9rem; font-weight:400; font-size:1.25rem; line-height:1.2 }
@@ -446,7 +447,7 @@ pre.sh .cm{ color:var(--ink-soft) }
    machine code and calls it directly. The API does not change - you construct
    <code>TJitParser</code> instead of <code>TMathParser</code> and carry on.</p>
         <p class="sub">The rule it never breaks: anything it cannot compile goes back to the
-   interpreter. There is no configuration for that and no way to switch it off,
+   interpreter. That fall back is not a setting: there is no way to switch it off,
    because <b>fast but wrong</b> is not a trade this library makes.</p></div>
     </div>
 
@@ -481,20 +482,28 @@ pre.sh .cm{ color:var(--ink-soft) }
     </table></div>
 
     <h2>What it costs, in nanoseconds</h2>
-    <p>One call of <code>AsDouble</code>, start to finish, averaged over a million
-      runs. Measured on Delphi 13, Windows, x86-64. The script that produces these
-      numbers is in the repository; run it on your own machine rather than trusting
-      the table.</p>
+    <p>Every row compares the same work done twice, with the accelerator and
+      without it. What one row measures is not what the next one does, so it is
+      worth saying plainly: the first three are a single evaluation of a formula
+      that is already parsed - the interpreter walking the script against machine
+      code running it; the loop row is one iteration inside a script that loops ten
+      thousand times; the bulk rows are one input out of an array handed over in a
+      single call, against the same inputs fed one <code>AsDouble</code> at a
+      time.</p>
+    <p>Measured on Delphi 13, Windows, x86-64. The number of runs each row was
+      averaged over is in the table, because it is not the same for all of them.
+      The programs that produce these numbers ship with the repository - run them
+      on your own machine rather than trusting the table.</p>
 
     <div class="tw"><table>
-      <thead><tr><th>Formula</th><th>Interpreted</th><th>Compiled</th><th>Times faster</th></tr></thead>
+      <thead><tr><th>Formula</th><th>Interpreted</th><th>Compiled</th><th>Times faster</th><th>Runs</th></tr></thead>
       <tbody>
-      <tr><td><code>x * 2 + 1</code></td><td><span class="m">880.9</span></td><td><span class="m">40.4</span></td><td><b>21&times;</b></td></tr>
-      <tr><td>polynomial, degree 3</td><td><span class="m">1 946.5</span></td><td><span class="m">48.4</span></td><td><b>40&times;</b></td></tr>
-      <tr><td>heavy math chain</td><td><span class="m">2 589.4</span></td><td><span class="m">149.0</span></td><td><b>17&times;</b></td></tr>
-      <tr><td>loop, 10 000 iterations</td><td><span class="m">3 882.1</span></td><td><span class="m">35.9</span></td><td><b>108&times;</b></td></tr>
-      <tr><td>bulk mode, <code>x * 2 + 1</code></td><td><span class="m">883.2</span></td><td><span class="m">7.7</span></td><td><b>115&times;</b></td></tr>
-      <tr><td>bulk mode, polynomial</td><td><span class="m">1 953.3</span></td><td><span class="m">11.8</span></td><td><b>165&times;</b></td></tr>
+      <tr><td>x * 2 + 1</td><td><span class="m">142.2</span></td><td><span class="m">11.6</span></td><td><b>12&times;</b></td><td><span class="m">2 000 000</span></td></tr>
+      <tr><td>polynomial, degree 3</td><td><span class="m">620.0</span></td><td><span class="m">20.8</span></td><td><b>30&times;</b></td><td><span class="m">1 000 000</span></td></tr>
+      <tr><td>heavy math chain</td><td><span class="m">967.0</span></td><td><span class="m">106.5</span></td><td><b>9&times;</b></td><td><span class="m">500 000</span></td></tr>
+      <tr><td>loop, 10 000 iterations</td><td><span class="m">3969.2</span></td><td><span class="m">35.5</span></td><td><b>112&times;</b></td><td><span class="m">200 000</span></td></tr>
+      <tr><td>bulk mode, x * 2 + 1</td><td><span class="m">893.0</span></td><td><span class="m">7.7</span></td><td><b>116&times;</b></td><td><span class="m">500 000</span></td></tr>
+      <tr><td>bulk mode, polynomial</td><td><span class="m">1968.6</span></td><td><span class="m">11.8</span></td><td><b>167&times;</b></td><td><span class="m">500 000</span></td></tr>
       </tbody>
     </table></div>
 
@@ -521,7 +530,7 @@ pre.sh .cm{ color:var(--ink-soft) }
       <tbody>
       <tr><td>Processor</td><td>x86-64 only - there is no ARM or 32-bit code generator</td></tr>
       <tr><td>Operating system</td><td>Windows and Linux; memory is taken with <code>VirtualAlloc</code> or <code>mmap</code> as appropriate</td></tr>
-      <tr><td>Memory protection</td><td>the page is writable while the code is emitted, then execute-only - W^X is respected</td></tr>
+      <tr><td>Memory protection</td><td>the page is writable while the code is emitted, then read and execute - never both at once, so W^X is respected</td></tr>
       <tr><td>Fallback</td><td>on any other target the accelerator is simply never used, and nothing breaks</td></tr>
       </tbody>
     </table></div>
@@ -531,7 +540,8 @@ pre.sh .cm{ color:var(--ink-soft) }
 
   <footer class="label">
     <div>MIT licensed &middot; Delphi &amp; Free Pascal &middot; Windows &amp; Linux</div>
-    <div>Draft preview - not published</div>
+    <div><a href="https://github.com/pisarev/pascal-mathparser">Source on GitHub</a>
+      &middot; <a href="index.html#releases">Releases</a></div>
   </footer>
 
 </div>

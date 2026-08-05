@@ -9,6 +9,7 @@
   Run: node build_docs.js   (after build.js, which provides the shell)
 */
 const fs = require('fs');
+const path = require('path');
 const { shell, docHead, table, gotcha, m, esc, pascal } = require('./build.js');
 
 /* ═══ syntax ════════════════════════════════════════════════════════════ */
@@ -173,14 +174,27 @@ const DECLINED = [
   prepared the release. Nothing here is typed in by hand: every figure has to
   come from a run of this release.
 */
-const BENCH = [
-  ['<code>x * 2 + 1</code>', '880.9', '40.4', '21'],
-  ['polynomial, degree 3', '1 946.5', '48.4', '40'],
-  ['heavy math chain', '2 589.4', '149.0', '17'],
-  ['loop, 10 000 iterations', '3 882.1', '35.9', '108'],
-  ['bulk mode, <code>x * 2 + 1</code>', '883.2', '7.7', '115'],
-  ['bulk mode, polynomial', '1 953.3', '11.8', '165'],
-];
+/*
+  The benchmark numbers are read from bench.tsv, written by the JitBench and
+  JitParserTest runs and merged by tools/release-audit/merge_bench.py.
+
+  There is no copy of them here any more. While there was one, the parser
+  README, the accelerator README and this page showed three DIFFERENT runs, and
+  each was presented as the current one; the page also promised "averaged over a
+  million" while the heavy chain runs half a million times. The repeat count now
+  stands in the table itself, row by row.
+*/
+const BENCH = fs.readFileSync(path.join(__dirname, 'bench.tsv'), 'utf8')
+  .split(/\r?\n/)
+  .filter(s => s && !s.startsWith('#'))
+  .map(s => s.split('\t'))
+  .map(([name, base, fast, runs]) => [
+    name,
+    (+base).toFixed(1),
+    (+fast).toFixed(1),
+    Math.round(+base / +fast),
+    (+runs).toLocaleString('en-US').replace(/,/g, ' '),
+  ]);
 
 const accelBody = docHead('The accelerator', [
   `The parser compiles a formula to byte-code once and interprets it after that.
@@ -188,7 +202,7 @@ const accelBody = docHead('The accelerator', [
    machine code and calls it directly. The API does not change - you construct
    <code>TJitParser</code> instead of <code>TMathParser</code> and carry on.`,
   `The rule it never breaks: anything it cannot compile goes back to the
-   interpreter. There is no configuration for that and no way to switch it off,
+   interpreter. That fall back is not a setting: there is no way to switch it off,
    because <b>fast but wrong</b> is not a trade this library makes.`
 ]) + `
 
@@ -203,13 +217,21 @@ ${table(['Kind', 'Covered'], COMPILED)}
 ${table(['Declines', 'Because'], DECLINED)}
 
     <h2>What it costs, in nanoseconds</h2>
-    <p>One call of <code>AsDouble</code>, start to finish, averaged over a million
-      runs. Measured on Delphi 13, Windows, x86-64. The script that produces these
-      numbers is in the repository; run it on your own machine rather than trusting
-      the table.</p>
+    <p>Every row compares the same work done twice, with the accelerator and
+      without it. What one row measures is not what the next one does, so it is
+      worth saying plainly: the first three are a single evaluation of a formula
+      that is already parsed - the interpreter walking the script against machine
+      code running it; the loop row is one iteration inside a script that loops ten
+      thousand times; the bulk rows are one input out of an array handed over in a
+      single call, against the same inputs fed one <code>AsDouble</code> at a
+      time.</p>
+    <p>Measured on Delphi 13, Windows, x86-64. The number of runs each row was
+      averaged over is in the table, because it is not the same for all of them.
+      The programs that produce these numbers ship with the repository - run them
+      on your own machine rather than trusting the table.</p>
 
-${table(['Formula', 'Interpreted', 'Compiled', 'Times faster'],
-  BENCH.map(b => [b[0], `<span class="m">${b[1]}</span>`, `<span class="m">${b[2]}</span>`, `<b>${b[3]}&times;</b>`]))}
+${table(['Formula', 'Interpreted', 'Compiled', 'Times faster', 'Runs'],
+  BENCH.map(b => [b[0], `<span class="m">${b[1]}</span>`, `<span class="m">${b[2]}</span>`, `<b>${b[3]}&times;</b>`, `<span class="m">${b[4]}</span>`]))}
 
     <p class="note">Bulk mode hands the accelerator an array of inputs and gets an
       array of answers, so the call overhead is paid once instead of a million times.</p>
@@ -235,7 +257,7 @@ ${gotcha('One number will differ, and here is why', [
 ${table(['Requirement', 'Detail'], [
   ['Processor', 'x86-64 only - there is no ARM or 32-bit code generator'],
   ['Operating system', 'Windows and Linux; memory is taken with <code>VirtualAlloc</code> or <code>mmap</code> as appropriate'],
-  ['Memory protection', 'the page is writable while the code is emitted, then execute-only - W^X is respected'],
+  ['Memory protection', 'the page is writable while the code is emitted, then read and execute - never both at once, so W^X is respected'],
   ['Fallback', 'on any other target the accelerator is simply never used, and nothing breaks'],
 ])}
   </section>`;
@@ -287,22 +309,31 @@ ${gotcha('Fractional powers under FPC on 64-bit Windows', [
 
     <h2>The accelerator</h2>
 ${table(['Does not', 'Consequence'], [
-  ['Run anywhere but x86-64', 'on ARM or 32-bit the interpreter answers, at interpreter speed'],
-  ['Compile loops to machine code', 'a formula whose hot part is a loop gets no benefit'],
+  ['Run anywhere but x86-64', 'on ARM or 32-bit the IR executor answers instead - two to three times the interpreter, not the interpreter itself'],
   ['Compile functions that take parameters', '<code>mean</code>, <code>poly</code> and friends fall back'],
   ['Key its cache by shape', 'two formulas differing only in a constant compile twice'],
-  ['Invalidate on registry change', 'call <code>ClearCode</code> yourself after adding a function'],
 ])}
 
     <h2>Threads</h2>
-    <p>Evaluation is thread-safe once everything is registered. Registration itself
-      is not: adding a function or a variable while another thread is evaluating is
-      undefined. The contract is simple and worth stating -
+    <p><b>TMathParser.</b> Evaluation is thread-safe once everything is registered.
+      Registration itself is not: adding a function or a variable while another
+      thread is evaluating is undefined. The contract is simple and worth stating -
       <b>register everything before the first evaluation</b>, then evaluate from as
       many threads as you like.</p>
-    <p>For per-thread values there is a redirect mechanism: one compiled script,
-      each thread reading its own variables. That is how the plotting component
-      samples a curve across four threads without four parsers.</p>
+    <p><b>TJitParser is different, and the difference matters.</b> The accelerator
+      keeps a cache: the text of the last formula, a list of compiled entries and
+      the counters beside it, all written on the first sight of a formula and none
+      of it under a lock. Two threads meeting a formula the cache has not seen will
+      both compile it and both write the list. One accelerating parser therefore
+      belongs to one thread.</p>
+    <p>The way to evaluate in parallel is the one the plotting component uses, and
+      it needs no locks at all: compile the scripts up front on a single thread
+      with <code>CompileScript</code>, then execute the compiled
+      <code>TJitScript</code> from as many threads as you like. A compiled script
+      does not change while it runs. For values that differ per thread there is a
+      redirect mechanism: one compiled script, each thread reading its own
+      variables. That is how a curve is sampled across four threads without four
+      parsers.</p>
 
     <h2>Plotting</h2>
 ${table(['Limit', 'Detail'], [
