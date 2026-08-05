@@ -269,6 +269,21 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.1', date: '5 August 2026', title: 'Interruptible loops and per-system formula sheets',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.1',
+    added: [
+      'A loop guard: a break flag and a turn budget, both off by default - a formula that never ends becomes a formula error, not a frozen tab or a killed worker thread',
+      'Unwind descriptions for generated x86-64 code on Windows: an exception thrown through it reaches the handler instead of taking the process down',
+    ],
+    fixed: [
+      'A deadlock on the first parse from a worker thread: the smart cache sent a synchronous window message across threads',
+      'Each coordinate system keeps a formula sheet of its own, the way the classic window always did, and a deliberately emptied sheet survives a reload',
+      'The intersection finder merged genuinely distinct neighbouring crossings as duplicates and silenced a fast curve as an indistinguishable stretch',
+      'Bulk evaluation fills the answers or says it did not; a formula the accelerator declines falls back to the ordinary parser',
+      'The plugin archive shrank from 9.6 MB to 1.4 MB: debug information no longer ships inside the library',
+    ],
+  },
+  {
     tag: 'v1.0.0', date: '4 August 2026', title: 'First public release',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.0',
     added: [

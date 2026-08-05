@@ -686,6 +686,16 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
     </div>
     <article class="rel">
       <div class="when">
+        <a class="tag" href="https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.1">v1.0.1</a>
+        <span class="date">5 August 2026</span>
+      </div>
+      <div class="what">
+        <h3>Interruptible loops and per-system formula sheets</h3>
+        <p class="kind">Added</p><ul><li>A loop guard: a break flag and a turn budget, both off by default - a formula that never ends becomes a formula error, not a frozen tab or a killed worker thread</li><li>Unwind descriptions for generated x86-64 code on Windows: an exception thrown through it reaches the handler instead of taking the process down</li></ul>
+        <p class="kind">Fixed</p><ul><li>A deadlock on the first parse from a worker thread: the smart cache sent a synchronous window message across threads</li><li>Each coordinate system keeps a formula sheet of its own, the way the classic window always did, and a deliberately emptied sheet survives a reload</li><li>The intersection finder merged genuinely distinct neighbouring crossings as duplicates and silenced a fast curve as an indistinguishable stretch</li><li>Bulk evaluation fills the answers or says it did not; a formula the accelerator declines falls back to the ordinary parser</li><li>The plugin archive shrank from 9.6 MB to 1.4 MB: debug information no longer ships inside the library</li></ul>
+      </div>
+    </article><article class="rel">
+      <div class="when">
         <a class="tag" href="https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.0">v1.0.0</a>
         <span class="date">4 August 2026</span>
       </div>
