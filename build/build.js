@@ -269,6 +269,21 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.4', date: '8 August 2026', title: 'The plugin reads the formula under the mouse, and sends the report back into the editor',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.4',
+    added: [
+      'The build that ships - the Lazarus one - picks the formula up from the editor: point at a line and the curve appears, select an expression and the selection wins over the line. Only the Delphi build did that before, and the Delphi build is not what ships',
+      'The report travels back the other way: one button opens it in a new tab, another drops it at the caret',
+      'It leaves as Markdown with the curve embedded as SVG - text, so it survives in a text editor, and still a drawn curve wherever Markdown is rendered',
+      'The panel keeps one slot for whatever the editor offers, so pointing around a file does not fill the list with formulas nobody asked for',
+      'The line under the cursor is compiled by a parser the plugin keeps for that alone, in the thread the editor calls from: compiling on the parser that is drawing the graph is outside the documented thread-safe subset',
+    ],
+    fixed: [
+      'The README said to select an expression and press Alt+G, which was never how it worked: the formula is taken from under the mouse pointer, and Alt+G only opens the panel',
+    ],
+  },
+  
+  {
     tag: 'v1.0.3', date: '7 August 2026', title: 'An Exit reaches the evaluation it belongs to, and the thread-safety contract stops overpromising',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.3',
     added: [
