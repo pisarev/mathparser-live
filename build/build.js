@@ -269,6 +269,21 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.3', date: '7 August 2026', title: 'An Exit reaches the evaluation it belongs to, and the thread-safety contract stops overpromising',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.3',
+    added: [
+      'A routing test suite for Exit: recursion, a chain through one foreign parser, a chain through two, an Exit owned by the parser in the middle, the legacy constructor inside and outside an evaluation',
+      'A README section that states the thread-safety contract in full, including the one rule the previous text left out: every simultaneously active evaluation needs script storage of its own',
+      'The plugin carries version information and unpacks the way Plugins Admin expects, so it can be listed in the Notepad++ plugin catalogue',
+    ],
+    fixed: [
+      'A parser standing between an Exit and the evaluation it belongs to swallowed it: with A calling B and B calling back into A, the Exit raised in A ended up as the result of B, and A quietly finished a different sum. The exception now carries its owner, and only the evaluation it names may take it',
+      'Looking for the enclosing evaluation moved off the path of an ordinary formula: it is asked only when an exception actually appears',
+      'The package descriptions said "Copyright Yuriy Pisarev" where the repository is MIT, and carried a version unrelated to the product',
+    ],
+  },
+  
+  {
     tag: 'v1.0.2', date: '6 August 2026', title: 'One parser, many threads: Exit belongs to its own evaluation',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.2',
     added: [

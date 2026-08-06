@@ -683,6 +683,16 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
     </div>
     <article class="rel">
       <div class="when">
+        <a class="tag" href="https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.3">v1.0.3</a>
+        <span class="date">7 August 2026</span>
+      </div>
+      <div class="what">
+        <h3>An Exit reaches the evaluation it belongs to, and the thread-safety contract stops overpromising</h3>
+        <p class="kind">Added</p><ul><li>A routing test suite for Exit: recursion, a chain through one foreign parser, a chain through two, an Exit owned by the parser in the middle, the legacy constructor inside and outside an evaluation</li><li>A README section that states the thread-safety contract in full, including the one rule the previous text left out: every simultaneously active evaluation needs script storage of its own</li><li>The plugin carries version information and unpacks the way Plugins Admin expects, so it can be listed in the Notepad++ plugin catalogue</li></ul>
+        <p class="kind">Fixed</p><ul><li>A parser standing between an Exit and the evaluation it belongs to swallowed it: with A calling B and B calling back into A, the Exit raised in A ended up as the result of B, and A quietly finished a different sum. The exception now carries its owner, and only the evaluation it names may take it</li><li>Looking for the enclosing evaluation moved off the path of an ordinary formula: it is asked only when an exception actually appears</li><li>The package descriptions said "Copyright Yuriy Pisarev" where the repository is MIT, and carried a version unrelated to the product</li></ul>
+      </div>
+    </article><article class="rel">
+      <div class="when">
         <a class="tag" href="https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.2">v1.0.2</a>
         <span class="date">6 August 2026</span>
       </div>
