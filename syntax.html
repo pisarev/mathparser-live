@@ -587,17 +587,16 @@ pre.sh .cm{ color:var(--ink-soft) }
 
 <span class="dir">{$APPTYPE CONSOLE}</span>
 
-<span class="kw">uses</span>
-  ParseTypes, ValueTypes, ValueUtils, Parser;
+<span class="kw">uses</span> ParseTypes, ValueTypes, ValueUtils, Parser;
 
 <span class="kw">type</span>
   TPricing = <span class="kw">class</span>
-    <span class="kw">function</span> Discount(<span class="kw">const</span> Header: PScriptHeader; <span class="kw">const</span> AFunction: PFunction;
-      <span class="kw">const</span> AType: PType; <span class="kw">const</span> PA: TParameterArray): TValue;
+    <span class="kw">function</span> Discount(<span class="kw">const</span> Header: PScriptHeader; <span class="kw">const</span> AFunction: PFunction; <span class="kw">const</span> AType: PType;
+      <span class="kw">const</span> PA: TParameterArray): TValue;
   <span class="kw">end</span>;
 
-<span class="kw">function</span> TPricing.Discount(<span class="kw">const</span> Header: PScriptHeader; <span class="kw">const</span> AFunction: PFunction;
-  <span class="kw">const</span> AType: PType; <span class="kw">const</span> PA: TParameterArray): TValue;
+<span class="kw">function</span> TPricing.Discount(<span class="kw">const</span> Header: PScriptHeader; <span class="kw">const</span> AFunction: PFunction; <span class="kw">const</span> AType: PType;
+  <span class="kw">const</span> PA: TParameterArray): TValue;
 <span class="kw">begin</span>
   Result := MakeDouble(GetDouble(PA[0].Value) * (1 - GetDouble(PA[1].Value) / 100));
 <span class="kw">end</span>;
@@ -611,9 +610,7 @@ pre.sh .cm{ color:var(--ink-soft) }
   P := TMathParser.Create(<span class="kw">nil</span>);
   Pricing := TPricing.Create;
   <span class="kw">try</span>
-    P.AddFunction(<span class="st">'discount'</span>, Handle, fkMethod,
-      MakeFunctionMethod(Pricing.Discount, 2, pkValue), False);
-
+    P.AddFunction(<span class="st">'discount'</span>, Handle, fkMethod, MakeFunctionMethod(Pricing.Discount, 2, pkValue), False);
     P.AddVariable(<span class="st">'rate'</span>, Rate);
     Rate := 20;
     Writeln(P.AsDouble(<span class="st">'discount(1000, rate)'</span>):0:2);

@@ -269,6 +269,20 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.2', date: '6 August 2026', title: 'One parser, many threads: Exit belongs to its own evaluation',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.2',
+    added: [
+      'A thread-safety test that pins down who owns an Exit: parallel roots, recursion, two parsers in one thread, a notification that starts its own evaluation',
+      'The loop guards are documented: a README section with a compiled-and-run example, and the exact scope - guards belong to the thread and are set at the root of an evaluation',
+    ],
+    fixed: [
+      'Exit inside a formula answered to the thread scheduler: the nesting depth lived in a field shared by every thread using the parser, so a parallel Exit escaped as an exception and a lost update could leave Exit broken until another race repaired it - the depth now lives in a frame on the stack of the call',
+      'Exit inside brackets now ends the whole evaluation in both evaluation modes: 99 + (Exit(42)) is 42 everywhere, where the evaluate-up-front mode used to answer 141',
+      'The plugin archive is reproducible: repacking the same content gives the same checksum',
+    ],
+  },
+  
+  {
     tag: 'v1.0.1', date: '5 August 2026', title: 'Interruptible loops and per-system formula sheets',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.1',
     added: [
