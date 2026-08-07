@@ -269,6 +269,19 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.8', date: '7 August 2026', title: 'Three ways into an evaluation, and the mask now covers all of them',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.8',
+    added: [],
+    fixed: [
+      'Compiled code ran without the parser\'s exception mask. Compile a script with CompileScript and run the compiled object - which is what the accelerator documentation recommends for evaluating from several threads - and division by zero raised where the library promises infinity. Two of the three ways into an evaluation had been covered in 1.0.7; this was the third, and the one the documentation points at',
+      'A parser evaluated from inside another parser ignored its own ExceptionMask. The test for "is this the outermost evaluation" asked whether any frame existed in the thread rather than whether the mask differed from its own, so a nested parser silently inherited the mask of whoever called it',
+      'Arming a loop guard inside another one switched off the outer cancellation. A nested ArmLoopGuard without a flag of its own wrote nil over the flag that was there, so an owner asking the work to stop went unheard for the whole of the inner run. Budgets may be replaced by an inner run; cancellation may not',
+      'ExceptionMask was documented as yours to narrow and declared protected, which put it out of reach of the code that was supposed to narrow it. It is public now',
+      'Looking a name up in the parser tables converted the string to lower case twice per lookup, once for the hash and once for the comparison. Same string, same result, two trips to the memory manager. Deriv went from fourteen allocations per call to eleven and from 4.05 to 3.40 microseconds',
+    ],
+  },
+  
+  {
     tag: 'v1.0.7', date: '7 August 2026', title: 'Three pieces of thread state that belonged to somebody else',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.7',
     added: [
