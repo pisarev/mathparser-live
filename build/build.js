@@ -269,6 +269,23 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.5', date: '7 August 2026', title: 'The library builds with Free Pascal 3.2.2 again, and the Linux matrix says so',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.5',
+    added: [
+      'Free Pascal 3.2.2 builds the library again. Function references arrived in 3.3.1, so on 3.2.2 the iterator callbacks are method pointers instead - you pass a method where you would otherwise pass an anonymous function, and nothing else changes',
+      'Nine functions 3.2.2 lacks in its Math unit - ArcCot, ArcCotH, ArcCsc, ArcCscH, ArcSec, ArcSecH, CotH, CscH, SecH - travel with the library, taken verbatim from the 3.3.1 runtime so the values agree to the last bit',
+      'MathFamilyTest guards that whole family by contract rather than by a table of numbers: a reciprocal multiplied by its base is one, an inverse returns the argument of the direct function, and ArcCotan answers in the branch it promises',
+      'The README says what the matrices run, including which two units ask for the LCL and how to switch them off',
+    ],
+    fixed: [
+      'Two accelerator tests and the thread-safety sample died on Linux before reaching their first line: on Unix the thread driver has to be the FIRST unit, and Classes standing ahead of it was enough to break that',
+      'A test compared a bound against Double(High(NativeInt)), which reinterprets the bits rather than converting the value - 0x7FFFFFFFFFFFFFFF read as a number is NaN. The comparison was silently against garbage wherever the compiler took the cast literally',
+      'The accelerator now says why it declined machine code even when the interpreter picked the work up, so the contract about wide Extended can be checked at all',
+      'The Linux test script looks for the widgetset folder instead of naming one, so a Lazarus built with gtk2 no longer reports a missing Interfaces unit',
+    ],
+  },
+  
+  {
     tag: 'v1.0.4', date: '8 August 2026', title: 'The plugin reads the formula under the mouse, and sends the report back into the editor',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.4',
     added: [

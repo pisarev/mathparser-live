@@ -683,6 +683,16 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
     </div>
     <article class="rel">
       <div class="when">
+        <a class="tag" href="https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.5">v1.0.5</a>
+        <span class="date">7 August 2026</span>
+      </div>
+      <div class="what">
+        <h3>The library builds with Free Pascal 3.2.2 again, and the Linux matrix says so</h3>
+        <p class="kind">Added</p><ul><li>Free Pascal 3.2.2 builds the library again. Function references arrived in 3.3.1, so on 3.2.2 the iterator callbacks are method pointers instead - you pass a method where you would otherwise pass an anonymous function, and nothing else changes</li><li>Nine functions 3.2.2 lacks in its Math unit - ArcCot, ArcCotH, ArcCsc, ArcCscH, ArcSec, ArcSecH, CotH, CscH, SecH - travel with the library, taken verbatim from the 3.3.1 runtime so the values agree to the last bit</li><li>MathFamilyTest guards that whole family by contract rather than by a table of numbers: a reciprocal multiplied by its base is one, an inverse returns the argument of the direct function, and ArcCotan answers in the branch it promises</li><li>The README says what the matrices run, including which two units ask for the LCL and how to switch them off</li></ul>
+        <p class="kind">Fixed</p><ul><li>Two accelerator tests and the thread-safety sample died on Linux before reaching their first line: on Unix the thread driver has to be the FIRST unit, and Classes standing ahead of it was enough to break that</li><li>A test compared a bound against Double(High(NativeInt)), which reinterprets the bits rather than converting the value - 0x7FFFFFFFFFFFFFFF read as a number is NaN. The comparison was silently against garbage wherever the compiler took the cast literally</li><li>The accelerator now says why it declined machine code even when the interpreter picked the work up, so the contract about wide Extended can be checked at all</li><li>The Linux test script looks for the widgetset folder instead of naming one, so a Lazarus built with gtk2 no longer reports a missing Interfaces unit</li></ul>
+      </div>
+    </article><article class="rel">
+      <div class="when">
         <a class="tag" href="https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.4">v1.0.4</a>
         <span class="date">8 August 2026</span>
       </div>
