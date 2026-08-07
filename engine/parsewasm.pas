@@ -70,16 +70,22 @@ begin
 end;
 
 function WEval(Slot: LongInt; X: Double): Double; cdecl;
+var
+  Guard: TLoopGuard;
 begin
   if (Slot < 0) or (Slot >= MaxSlots) or not Slots[Slot].Used then
     Exit(NaN);
   VarX := X;
   VarT := X;
-  ParseLoopLeft := LoopLimit;
+  ArmLoopGuard(Guard, LoopLimit);
   try
-    Result := GetDouble(P.ExecuteScript(Slots[Slot].Script)^);
-  except
-    Result := NaN;
+    try
+      Result := GetDouble(P.ExecuteScript(Slots[Slot].Script)^);
+    except
+      Result := NaN;
+    end;
+  finally
+    DisarmLoopGuard(Guard);
   end;
 end;
 
@@ -87,6 +93,7 @@ function WSample(Slot: LongInt; Lo, Hi: Double; Count: LongInt; Buffer: PDouble)
 var
   I, Good: Integer;
   Step: Double;
+  Guard: TLoopGuard;
 begin
   if (Count < 1) or (Slot < 0) or (Slot >= MaxSlots) or not Slots[Slot].Used then
     Exit(0);
@@ -95,18 +102,22 @@ begin
   else
     Step := 0;
   Good := 0;
-  ParseLoopLeft := LoopLimit;
-  for I := 0 to Count - 1 do
-  begin
-    VarX := Lo + Step * I;
-    VarT := VarX;
-    try
-      Buffer^ := GetDouble(P.ExecuteScript(Slots[Slot].Script)^);
-      if not IsNan(Buffer^) and not IsInfinite(Buffer^) then Inc(Good);
-    except
-      Buffer^ := NaN;
+  ArmLoopGuard(Guard, LoopLimit);
+  try
+    for I := 0 to Count - 1 do
+    begin
+      VarX := Lo + Step * I;
+      VarT := VarX;
+      try
+        Buffer^ := GetDouble(P.ExecuteScript(Slots[Slot].Script)^);
+        if not IsNan(Buffer^) and not IsInfinite(Buffer^) then Inc(Good);
+      except
+        Buffer^ := NaN;
+      end;
+      Inc(Buffer);
     end;
-    Inc(Buffer);
+  finally
+    DisarmLoopGuard(Guard);
   end;
   Result := Good;
 end;

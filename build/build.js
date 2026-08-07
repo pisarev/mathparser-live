@@ -269,6 +269,19 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.7', date: '7 August 2026', title: 'Three pieces of thread state that belonged to somebody else',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.7',
+    added: [
+      'ArmLoopGuard and DisarmLoopGuard arm the loop guard in a pair. The guard lives in thread variables, but a run does not: an exhausted budget is written as a negative number and used to outlive the run that spent it, so the next code in that thread - a different parser, a later button press, something that never armed a guard at all - was refused on an honest ten turn loop. Disarming puts back what was there before, so arming nests as well',
+    ],
+    fixed: [
+      'The floating point exception mask was installed by the parser constructor and belonged to the thread that happened to create the object. A worker thread evaluating on a shared parser therefore got EZeroDivide where the library promises infinity - the exact arrangement the plotting component uses - and, while a parser was alive, neighbouring code in the same thread quietly stopped getting its own exceptions. An evaluation now installs the mask and hands the caller\'s back. The accelerator does the same around machine code, which runs outside the interpreter: a fuzz set on Free Pascal caught 28 formulas raising where the interpreter answered',
+      'The lock around Deriv and Parse was one lock for every parser in the process, so four threads with four unrelated parsers queued up behind each other. It is now per parser, and Parse holds it only while it compiles - running the compiled script under a lock meant running arbitrary user code under it',
+      'The Linux check script for the plotting engine sourced a fixed compiler environment, so the 3.2.2 matrix silently ran on 3.3.1 and the engine was never built against 3.2.2 at all. It cannot be: a geometry dependency sorts points with an anonymous comparer. Both facts are now stated rather than hidden - the script says so before it tries, and the README says which compiler the engine needs',
+    ],
+  },
+  
+  {
     tag: 'v1.0.6', date: '7 August 2026', title: 'A hidden button is hidden for real',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.6',
     added: [],
