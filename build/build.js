@@ -269,6 +269,16 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.6', date: '7 August 2026', title: 'A hidden button is hidden for real',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.6',
+    added: [],
+    fixed: [
+      'The two buttons that send the report into the editor still showed up in the live demo, where there is no editor to send anything to. 1.0.5 taught the page to ask the host first, and the host answers correctly - but the buttons were being hidden with the hidden attribute alone, and that attribute is only a display:none from the browser stylesheet. The panel sets display:grid on its buttons, which wins. Measured on the published demo: hidden was true and the button was still thirty pixels wide',
+      'And underneath that, a second one it had been hiding. The panel asks the host whether there is an editor, and the Lazarus host answered in the same reply it uses to hand back the previous session - so whenever the panel opened with work in it, which is nearly always, the answer never arrived at all. It was invisible while the buttons were showing anyway. The greeting is now its own message and goes out first',
+    ],
+  },
+  
+  {
     tag: 'v1.0.5', date: '7 August 2026', title: 'The library builds with Free Pascal 3.2.2 again, and the Linux matrix says so',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.5',
     added: [
