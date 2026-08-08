@@ -269,6 +269,30 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.0.9', date: '8 August 2026', title: 'The stable compiler builds all of it, and what an outside reading found',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.9',
+    added: [],
+    fixed: [
+      'The plotting engine needed a compiler that is not released yet. It sorted points with an anonymous comparer, and function references arrived in Free Pascal 3.3.1, so a normal install - the stable 3.2.2 - stopped with a syntax error in the middle of a file nobody had touched. The sort is now written out by hand in the same unit, which keeps that unit free of anything but the RTL, as its own header promises. Checked by building and running on 3.2.2: 138 checks and a 200-run stress pass',
+      'A second thing blocked the same compiler, and the version gate in the build script had been hiding it: the engine counted compiled scripts with AtomicIncrement, which 3.2.2 does not have. It uses InterlockedIncrement now, as the parser already did. The gate is gone, and the script says which compiler it found instead of refusing to try',
+      'None of the three Lazarus packages could be built by Lazarus itself - on Linux or on Windows, and before any of this as well. The build scripts pass unit paths on the command line and so never read the package description, which is why they stayed green. Three things were wrong in it: the tag was written UnitOutputDir where Lazarus reads UnitOutputDirectory and silently ignores anything else, so compiled units landed beside the sources and Lazarus then refused with "ambiguous unit"; three units the parser package needs were not listed in it at all; and the plotting component pulled in the Windows and Messages units on Free Pascal, so on Linux it did not compile at any version. All three are fixed, and a check now builds every package with lazbuild before a release goes out',
+      'A compiled script outliving the parser that made it read freed memory. CompileScript hands the object to you, and the parser kept no note of it: when the parser went, the object was left holding a pointer to it. Ready read the generation of the parser through that pointer, and 1.0.8 had added a second read on the execution path itself. The parser now keeps a list of the scripts it has issued and clears their owner on the way out; a script that outlives its parser goes on working, it just can no longer tell whether the parser has changed - and nothing can change it any more',
+      'TGraphEngine.Parser could be replaced while the workers were evaluating. The setter edited the table of the old parser, freed it when it owned it, and only then handed the new one to the threads - with no check that they had stopped, against the rule the parser itself publishes. It now stops them and waits',
+      'The plugin lost the first formula when the panel had not finished starting. It was remembered as sent before it was sent, and the panel drops what arrives too early, so the same formula was never offered again. Delivery is now reported back, and only what arrived is remembered',
+      'The accelerator documentation described a contract ExecuteMany does not have. It always fills the output array, with "not a number" first of all, so False does not mean your data survived untouched. A formula the code generator turns down is not a refusal at all - it is evaluated the ordinary way and answers True. The bulk example checks its result now, which the surrounding text had been demanding of the reader while the example itself did not',
+      'The same file said in one place that scripts with a redirect category are not compiled, and in another that the accelerator resolves the redirect chain while building. The second is what the code does',
+      'The site promised one compiled script serving every thread. Each thread needs its own copy, redirected at its own variables - the address is resolved once, when the script is built, and a compiled script cannot pick two',
+      'The README of the plotting component presented the browser demo as this engine compiled to WebAssembly. Only the parser is compiled there; the drawing, the intersections and the extrema are written again in JavaScript',
+      'Four settings in the browser demo looked like they worked and were read by no one: sampling accuracy, computation time, intersection search time and search depth. They are connected in the native panel and not in the browser, so the browser no longer shows them',
+      'The loop budget in the browser covers a whole sweep rather than each point - deliberately, or an endless loop would hold the tab for as many turns as there are points. Running out of it was indistinguishable from a place where the function has no value: both arrived as gaps. It says so now, and the limitations page finally mentions the budget at all',
+      'The README claimed the battery runs everything under Delphi on both word sizes. Two targets do; the rest are 64-bit, which is where the code generator lives',
+      'install.ps1 installed the Delphi build while the release ships the Lazarus one, into a folder of a different name. It installs what ships now, and takes -Delphi for the other',
+      'The plugin explained the absence of a 32-bit build by saying Notepad++ is 64-bit. It is not only that - there are 32-bit and ARM64 editions; they are simply not supported',
+      'TFormulaData exposed a field spelled Corrent while the property beside it is Correct. Correct is now available on the record as well, over the same byte',
+    ],
+  },
+  
+  {
     tag: 'v1.0.8', date: '7 August 2026', title: 'Three ways into an evaluation, and the mask now covers all of them',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.8',
     added: [],

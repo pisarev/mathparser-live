@@ -102,6 +102,7 @@ begin
   else
     Step := 0;
   Good := 0;
+  LastNote := '';
   ArmLoopGuard(Guard, LoopLimit);
   try
     for I := 0 to Count - 1 do
@@ -117,6 +118,8 @@ begin
       Inc(Buffer);
     end;
   finally
+    if ParseLoopLeft < 0 then
+      LastNote := 'loop budget spent: subsequent loop evaluations were aborted';
     DisarmLoopGuard(Guard);
   end;
   Result := Good;

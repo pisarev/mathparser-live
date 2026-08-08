@@ -233,8 +233,8 @@ ${steps([
       <code>TCustomControl</code> descendant.</p>`],
   ['Give it formulas',
    `<p>The component owns the parser, samples the curve across threads and draws
-      the result. Redirection is what makes the threads safe: one compiled
-      script, each thread reading its own variables.</p>`],
+      the result. Redirection is what makes the threads safe: every worker gets
+      its own copy of the script, redirected at its own variables.</p>`],
 ])}
 
     <p class="undercode">On FPC the drawing goes through the LCL canvas, so a

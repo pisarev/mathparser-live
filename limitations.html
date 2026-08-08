@@ -499,10 +499,13 @@ pre.sh .cm{ color:var(--ink-soft) }
     <p>The way to evaluate in parallel is the one the plotting component uses, and
       it needs no locks at all: compile the scripts up front on a single thread
       with <code>CompileScript</code>, then execute the compiled
-      <code>TJitScript</code> from as many threads as you like. A compiled script
-      does not change while it runs. For values that differ per thread there is a
-      redirect mechanism: one compiled script, each thread reading its own
-      variables. That is how a curve is sampled across four threads without four
+      <code>TJitScript</code> from as many threads as you like, as long as each
+      one has its own. A compiled script does not change while it runs, but the
+      addresses it works with are baked into it when it is built: the redirect
+      chain is resolved once, at compile time. So a thread that needs its own
+      variables needs its own copy of the script, with its own category, compiled
+      separately - <code>Copy</code> the script, redirect the copy, compile that.
+      That is how a curve is sampled across four threads without four
       parsers.</p>
 
     <h2>Plotting</h2>
@@ -512,6 +515,7 @@ pre.sh .cm{ color:var(--ink-soft) }
       <tr><td>Antialiasing</td><td>smooth curves use GDI+, which exists only in the Delphi build; FPC draws a plain polyline</td></tr>
       <tr><td>Report</td><td>roots and areas are found numerically on the sampled points, so their accuracy follows the sampling density</td></tr>
       <tr><td>Polar poles</td><td>a curve through infinity is broken rather than joined - correct, but it means one curve may arrive as several pieces</td></tr>
+      <tr><td>Loop budget in the browser</td><td>one budget covers a whole sweep, not each point, so an endless loop cannot hold the tab for as many turns as there are points. A formula with an honest loop can spend it partway along, and the remaining points come back as "not a number". The demo says so rather than leaving a silent gap; the plugin has no such limit</td></tr>
       </tbody>
     </table></div>
 

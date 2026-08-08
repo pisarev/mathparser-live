@@ -58,19 +58,33 @@ class Engine {
     if (slot < 0) throw new Error(this.note());
     return slot;
   }
-  note() {
+  /*
+    The note as it stands. note() puts "parse error" in place of an empty answer,
+    which is right for a refused parse and wrong for everything else: sampling
+    writes here the reason evaluation stopped, and an invented error would hide
+    it.
+  */
+  rawNote() {
     const cap = 512, p = this.e.walloc(cap);
     const n = this.e.note(p, cap);
     const s = this.dec.decode(new Uint8Array(this.e.memory.buffer, p, n));
     this.e.wfree(p);
-    return s || "parse error";
+    return s;
   }
+  note() { return this.rawNote() || "parse error"; }
   evalAt(slot, x) { return this.e.evalat(slot, x); }
   sample(slot, lo, hi, count) {
     const p = this.e.walloc(count * 8);
     this.e.sample(slot, lo, hi, count, p);
     const out = new Float64Array(this.e.memory.buffer.slice(p, p + count * 8));
     this.e.wfree(p);
+    /*
+      Why a sweep came out short arrives apart from the numbers: the loop budget
+      covers the whole sweep at once, and a point that enters a loop after it has
+      run out comes back as "not a number". Without this note a gap in the curve
+      would look like a property of the formula.
+    */
+    out.cutoff = this.rawNote();
     return out;
   }
   drop(slot) { this.e.drop(slot); }
@@ -176,6 +190,9 @@ function doBuild(m) {
     }
   }
 
+  // Taken after the LAST sampling: choosing the quality samples again.
+  const cutoff = samples.map(s => s.cutoff).find(Boolean) || "";
+
   const xs = new Float64Array(count);
   for (let k = 0; k < count; k++) xs[k] = lo + (hi - lo) * k / (count - 1);
 
@@ -208,7 +225,8 @@ function doBuild(m) {
   });
 
   const ms = Math.max(1, Math.round(performance.now() - t0));
-  reply({ type: "curves", list, points: total, ms, error: firstError || undefined });
+  reply({ type: "curves", list, points: total, ms,
+    error: firstError || cutoff || undefined });
 
   if (o.cross) reply(Object.assign({ type: "overlaps" }, findOverlaps()));
   if (o.peak) reply({ type: "extremes", ...findExtremes() });
