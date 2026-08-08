@@ -42,6 +42,24 @@ function heading(text) {
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
+/*
+  The holder for the cleanup is declared OUTSIDE, and that is not decoration.
+
+  The first attempt hung the finally on restoreStorage itself - which is a const
+  inside the function below, and outside that name does not exist at all. A chain
+  evaluates its argument at once, so the page died with a ReferenceError before
+  the first check: an edit made for the sake of unconditional cleanup killed the
+  whole set. Measured in a separate run.
+
+  Why not a try/finally around the body, which is what one would reach for: the
+  body is two thousand lines and holds fifty multi-line template literals that go
+  into an eval inside the frame. Shifting the indentation would change THE STRINGS
+  THEMSELVES, not merely the look of the code. So the cleanup goes through a
+  holder: the name outside always exists, it is given its value the moment the
+  function appears, and the call happens later.
+*/
+let cleanup = () => {};
+
 (async () => {
   const log = document.getElementById("log");
   const frame = document.getElementById("app");
@@ -81,6 +99,10 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
       Object.keys(savedStorage).forEach(k => ls.setItem(k, savedStorage[k]));
     } catch (e) { /* the frame is gone - there is nowhere to put it back */ }
   };
+  // The holder outside is given its value as soon as the function is ready: from
+  // that moment every ending - a normal one, an early return, an exception -
+  // cleans up after itself.
+  cleanup = restoreStorage;
   try {
     const ls = frame.contentWindow.localStorage;
     for (let i = 0; i < ls.length; i++) {
@@ -2040,7 +2062,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     ? String(e.stack).split(String.fromCharCode(10)).slice(0, 2).join(" ") : String(e));
   { /* the set may fail; it may not carry somebody else's work away */ }
   finish();
-}).finally(restoreStorage);
+}).finally(() => cleanup());
 /*
   Putting somebody else's memory back hangs on the end of the chain instead of
   being placed by hand along the paths.
