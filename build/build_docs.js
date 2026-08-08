@@ -201,16 +201,18 @@ const accelBody = docHead('The accelerator', [
    The accelerator goes one step further: it turns the byte-code into x86-64
    machine code and calls it directly. The API does not change - you construct
    <code>TJitParser</code> instead of <code>TMathParser</code> and carry on.`,
-  `The rule it never breaks: anything it cannot compile goes back to the
-   interpreter. That fall back is not a setting: there is no way to switch it off,
-   because <b>fast but wrong</b> is not a trade this library makes.`
+  `The rule it never breaks: anything it cannot compile falls to the stage below
+   it - the intermediate one, and the interpreter behind that. That fall back is
+   not a setting: there is no way to switch it off, because <b>fast but wrong</b>
+   is not a trade this library makes.`
 ]) + `
 
     <h2>What it compiles</h2>
 ${table(['Kind', 'Covered'], COMPILED)}
 
     <h2>What it declines</h2>
-    <p>Each of these hands the formula back to the interpreter, whole. The reason
+    <p>Each of these hands the formula down a stage, whole: to the intermediate
+      one, and to the interpreter if that declines it too. The reason
       is available as <code>CodeReason</code> if you want to know why a particular
       formula did not compile.</p>
 
@@ -241,7 +243,7 @@ ${table(['Formula', 'Interpreted', 'Compiled', 'Times faster', 'Runs'],
       branches, loops - and both engines evaluate each one. The run that ships
       with the repository covers <b>3 000 formulas with zero disagreements</b>,
       and the compiler declined none of them. When it does decline something it
-      says why in one word, and the interpreter answers instead.</p>
+      says why in one word, and the stage below answers instead.</p>
 
 ${gotcha('One number will differ, and here is why', [
   `The interpreter keeps intermediate values in <code>Extended</code>; the
@@ -258,7 +260,7 @@ ${table(['Requirement', 'Detail'], [
   ['Processor', 'x86-64 only - there is no ARM or 32-bit code generator'],
   ['Operating system', 'Windows and Linux; memory is taken with <code>VirtualAlloc</code> or <code>mmap</code> as appropriate'],
   ['Memory protection', 'the page is writable while the code is emitted, then read and execute - never both at once, so W^X is respected'],
-  ['Fallback', 'on any other target the accelerator is simply never used, and nothing breaks'],
+  ['Fallback', 'on any other target the machine-code stage is skipped and the intermediate one answers, with the interpreter behind it - nothing breaks'],
 ])}
   </section>`;
 

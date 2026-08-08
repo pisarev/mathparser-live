@@ -172,22 +172,33 @@ ${table(['What you get', 'Where'], [
     <p>The plugin is the parser and the plotting engine behind a panel. It builds
       from either compiler.</p>
 
+    <h3>Lazarus</h3>
+${shellBlock([
+  '# from the plugin repository',
+  'pwsh -File build-lazarus.ps1',
+  '',
+  '# and put it where Notepad++ looks for plugins',
+  'pwsh -File install.ps1',
+])}
+    <p>This is the build that ships. It wants the parser and the plotting engine
+      cloned beside the plugin, because the project file names them by relative
+      path, and it wants <code>WEBVIEW4DELPHI</code> pointing at a checkout of
+      that library - the script registers its Lazarus package itself.</p>
+
     <h3>Delphi</h3>
 ${shellBlock([
   '# from the plugin repository',
   'pwsh -File build.ps1',
   '',
   '# and put it where Notepad++ looks for plugins',
-  'pwsh -File install.ps1',
+  'pwsh -File install.ps1 -Delphi',
 ])}
-    <p>The script compiles for x64 only, because Notepad++ 8.9 is x64. It picks
-      up the parser, the accelerator and the plotting engine from their folders -
-      no packages need to be installed for this.</p>
-
-    <h3>Lazarus</h3>
-    <p>Open <code>lazarus/GraphBuilderLaz.lpi</code> and build. The result is the
-      same plugin: the panel, the engine and the parser are shared sources, and
-      only the browser host and the panel class differ between the two builds.</p>
+    <p>The same sources through the other compiler; the switch is what tells the
+      installer which of the two to take. It picks up the parser, the accelerator
+      and the plotting engine from their folders, and no packages need to be
+      installed for it. Both scripts build x64 and only x64: that is what this
+      plugin supports. Notepad++ itself also ships 32-bit and ARM64 builds, and
+      neither of them will load this one.</p>
 
     <h2 id="web">Embedding the web version</h2>
     <p>The demo on this site is not a video and not a screenshot: it is the real

@@ -13,8 +13,8 @@ the visitor's own machine.
 
 | | |
 |---|---|
-| `index.html`, `syntax.html`, `accelerator.html`, `limitations.html` | the built pages |
-| `demo/` | the live demo: the plugin panel over the engine compiled to WebAssembly |
+| `index.html`, `syntax.html`, `accelerator.html`, `limitations.html`, `start.html` | the built pages |
+| `demo/` | the live demo: the plugin panel over the parser compiled to WebAssembly |
 | `build/` | the generators that produce the pages |
 | `engine/` | Pascal sources for the WebAssembly build of the engine |
 
@@ -32,13 +32,20 @@ straight chords: sample it densely and you get an ordinary flower.
 
 ## Rebuilding the pages
 
+The Pascal shown on the pages is not typed into the generator: it is read from
+the sample programs the parser's own build matrix compiles and runs, so the code
+on screen is code a compiler has seen. That means `pascal-mathparser` has to be
+cloned next to this repository - the generator looks for its `samples/docs` one
+level up. Without it the build stops and says so.
+
 ```bash
 cd build
 node build.js        # front page
 node build_docs.js   # syntax, accelerator, limitations
+node build_start.js  # start: how to build all of this yourself
 ```
 
-Both write into `build/`; move the four HTML files up one level. To recompute the
+All three write into `build/`; move the five HTML files up one level. To recompute the
 curves you need Delphi or FPC and the parser sources:
 
 ```bash

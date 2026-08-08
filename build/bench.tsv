@@ -1,0 +1,12 @@
+# Speed measurements. The table on the accelerator page is read from here, so
+# the numbers on the page are numbers a run produced rather than numbers typed
+# in. They come from JitBench and JitParserTest, which ship with the parser
+# repository - run them on your own machine rather than trusting this file.
+#
+# label	without the accelerator, ns	with it, ns	runs
+x * 2 + 1	142.2	11.6	2000000
+polynomial, degree 3	620.0	20.8	1000000
+heavy math chain	967.0	106.5	500000
+loop, 10 000 iterations	3969.2	35.5	200000
+bulk mode, x * 2 + 1	893.0	7.7	500000
+bulk mode, polynomial	1968.6	11.8	500000

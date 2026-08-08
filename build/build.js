@@ -11,11 +11,24 @@
 */
 const fs = require('fs');
 const path = require('path');
-// The samples on the page are files the build matrix compiles and runs
-// (samples/docs). The code on the showcase used to live here and nowhere else,
-// and for years it contained variables that came from nowhere: no compiler ever
-// saw that text. Now there is one source.
-const SAMPLES = path.join(__dirname, '..', '..', '0-foundation', 'samples', 'docs');
+// The samples on the page are files the build matrix compiles and runs. The
+// code on the showcase used to live here and nowhere else, and for years it
+// contained variables that came from nowhere: no compiler ever saw that text.
+// Now there is one source.
+//
+// The folder is looked for rather than named: inside the monorepo it is
+// 0-foundation, in the published layout it is a clone of the parser repository
+// next to this one, where the same files sit in samples/docs. While the path
+// was a single monorepo one, the documented `node build.js` stopped on a fresh
+// clone at the very first read.
+const SAMPLES = [
+  path.join(__dirname, '..', '..', 'pascal-mathparser', 'samples', 'docs'),
+  path.join(__dirname, '..', '..', '0-foundation', 'samples', 'docs')
+].find(fs.existsSync);
+if (!SAMPLES) {
+  throw new Error('samples not found: clone pascal-mathparser next to this ' +
+    'repository (see README, "Rebuilding the pages")');
+}
 
 function highlight(code) {
   const KW = /\b(program|library|unit|uses|var|const|type|begin|end|try|finally|except|for|to|downto|do|while|repeat|until|if|then|else|function|procedure|class|record|nil|not|and|or|div|mod)\b/g;
@@ -275,7 +288,7 @@ const RELEASES = [
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.9',
     added: [],
     fixed: [
-      'The plotting engine needed a compiler that is not released yet. It sorted points with an anonymous comparer, and function references arrived in Free Pascal 3.3.1, so a normal install - the stable 3.2.2 - stopped with a syntax error in the middle of a file nobody had touched. The sort is now written out by hand in the same unit, which keeps that unit free of anything but the RTL, as its own header promises. Checked by building and running on 3.2.2: 138 checks and a 200-run stress pass',
+      'The plotting engine needed a compiler that is not released yet. It sorted points with an anonymous comparer, and function references arrived in Free Pascal 3.3.1, so a normal install - the stable 3.2.2 - stopped with a syntax error in the middle of a file nobody had touched. The sort is now written out by hand in the same unit, which keeps that unit free of anything but the RTL, as its own header promises. Checked by building and running on 3.2.2: 149 checks and a 200-run stress pass',
       'A second thing blocked the same compiler, and the version gate in the build script had been hiding it: the engine counted compiled scripts with AtomicIncrement, which 3.2.2 does not have. It uses InterlockedIncrement now, as the parser already did. The gate is gone, and the script says which compiler it found instead of refusing to try',
       'None of the three Lazarus packages could be built by Lazarus itself - on Linux or on Windows, and before any of this as well. The build scripts pass unit paths on the command line and so never read the package description, which is why they stayed green. Three things were wrong in it: the tag was written UnitOutputDir where Lazarus reads UnitOutputDirectory and silently ignores anything else, so compiled units landed beside the sources and Lazarus then refused with "ambiguous unit"; three units the parser package needs were not listed in it at all; and the plotting component pulled in the Windows and Messages units on Free Pascal, so on Linux it did not compile at any version. All three are fixed, and a check now builds every package with lazbuild before a release goes out',
       'A compiled script outliving the parser that made it read freed memory. CompileScript hands the object to you, and the parser kept no note of it: when the parser went, the object was left holding a pointer to it. Ready read the generation of the parser through that pointer, and 1.0.8 had added a second read on the execution path itself - and the owner was only the first of several references, since the check on redirect assumptions reads the parser table and the executor holds pointers to methods of its objects. So the contract is now written down instead of patched: a compiled script is bound to the parser that built it. It may outlive the parser to be held, inspected and freed; it may not be evaluated afterwards. Ready goes out, Reason says the parser that compiled this script is gone, and Execute raises EJitOrphan - a refusal you can test for, in place of a read of freed memory',
