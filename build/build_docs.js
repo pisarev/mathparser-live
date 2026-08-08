@@ -10,7 +10,7 @@
 */
 const fs = require('fs');
 const path = require('path');
-const { shell, docHead, table, gotcha, m, esc, pascal } = require('./build.js');
+const { shell, docHead, table, gotcha, m, esc, fx, pascal } = require('./build.js');
 
 /* ═══ syntax ════════════════════════════════════════════════════════════ */
 
@@ -116,8 +116,8 @@ ${table(['Written', 'Does'], [
 ])}
 
     <h2>Two that read their own arguments</h2>
-    <p><code>parse('2 + 3')</code> compiles a formula while the outer formula is
-      running. <code>deriv('x ** 2', 'x')</code> differentiates symbolically and
+    <p>${fx('parse("2 + 3")')} compiles a formula while the outer formula is
+      running. ${fx('deriv("x ** 2", "x")')} differentiates symbolically and
       returns the derivative - not a numeric approximation of it.</p>
 
     <h2>The 163 callable functions</h2>

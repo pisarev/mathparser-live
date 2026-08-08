@@ -71,12 +71,15 @@ ${steps([
       second is optional - leave it out and the interpreter answers.</p>`],
   ['Compile and run',
    shellBlock([
+     '# from the folder that holds the sample',
+     'cd samples/docs',
+     '',
      '# Delphi',
      'dcc64 -U C:\\lib\\pascal-mathparser\\src hero.dpr',
      'hero.exe',
      '',
-     '# Free Pascal, any platform',
-     'fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.pas',
+     '# Free Pascal on Windows',
+     'fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.dpr',
      './hero',
    ])],
 ])}
@@ -89,7 +92,9 @@ ${gotcha('On FPC outside Windows, add one folder', [
   `<code>src/compat</code> holds a stand-in for a unit that only exists on
    Windows. With it the library needs nothing but the RTL - no LCL, no LazUtils,
    no Lazarus at all:`,
-  `<code>fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu.../src/compat -Fu.../src hero.pas</code>`
+  `<code>fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu.../src/compat -Fu.../src -Fi.../src hero.dpr</code>
+   <br>The set is the one the Linux matrix uses in
+   <code>tests/build_parser_linux.sh</code>, not a shortened version of it.`
 ])}
 
     <h2 id="delphi">Delphi: into a project you already have</h2>
@@ -155,7 +160,7 @@ ${shellBlock([
   '    -Fu~/pascal-mathparser/src/compat \\',
   '    -Fu~/pascal-mathparser/src \\',
   '    -Fu~/pascal-mathparser/jit \\',
-  '    hero.pas',
+  '    hero.dpr',
   './hero',
 ])}
 
@@ -216,10 +221,15 @@ ${steps([
       ${shellBlock(['python -m http.server 8080'])}`],
   ['Or rebuild the engine yourself',
    `<p>Needs the FPC cross compiler for <code>wasm32-wasip1</code>, built from
-      the FPC sources:</p>
+      the FPC sources. The two commands run in different folders, so each says
+      where it starts:</p>
       ${shellBlock([
+        '# in a checkout of the FPC sources',
         'make crossall crossinstall OS_TARGET=wasip1 CPU_TARGET=wasm32',
-        'pwsh -File build_wasm.ps1',
+      ])}
+      ${shellBlock([
+        '# in a checkout of this repository',
+        'pwsh -File engine/build_wasm.ps1',
       ])}`],
 ])}
 

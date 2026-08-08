@@ -486,11 +486,14 @@ pre.sh .cm{ color:var(--ink-soft) }
       </li>
       <li>
         <h4>Compile and run</h4>
-        <pre class="sh"><span class="cm"># Delphi</span>
+        <pre class="sh"><span class="cm"># from the folder that holds the sample</span>
+cd samples/docs
+
+<span class="cm"># Delphi</span>
 dcc64 -U C:\lib\pascal-mathparser\src hero.dpr
 hero.exe
 
-<span class="cm"># Free Pascal, any platform</span>
+<span class="cm"># Free Pascal on Windows</span>
 fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.dpr
 ./hero</pre>
       </li>
@@ -502,7 +505,9 @@ fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.dpr
 
     <div class="gotcha"><span class="k">On FPC outside Windows, add one folder</span><p><code>src/compat</code> holds a stand-in for a unit that only exists on
    Windows. With it the library needs nothing but the RTL - no LCL, no LazUtils,
-   no Lazarus at all:</p><p><code>fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu.../src/compat -Fu.../src hero.dpr</code></p></div>
+   no Lazarus at all:</p><p><code>fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu.../src/compat -Fu.../src -Fi.../src hero.dpr</code>
+   <br>The set is the one the Linux matrix uses in
+   <code>tests/build_parser_linux.sh</code>, not a shortened version of it.</p></div>
 
     <h2 id="delphi">Delphi: into a project you already have</h2>
     <p>Two ways. The first puts the components in the palette and is what most
@@ -650,9 +655,12 @@ pwsh -File install.ps1 -Delphi</pre>
       <li>
         <h4>Or rebuild the engine yourself</h4>
         <p>Needs the FPC cross compiler for <code>wasm32-wasip1</code>, built from
-      the FPC sources:</p>
-      <pre class="sh">make crossall crossinstall OS_TARGET=wasip1 CPU_TARGET=wasm32
-pwsh -File build_wasm.ps1</pre>
+      the FPC sources. The two commands run in different folders, so each says
+      where it starts:</p>
+      <pre class="sh"><span class="cm"># in a checkout of the FPC sources</span>
+make crossall crossinstall OS_TARGET=wasip1 CPU_TARGET=wasm32</pre>
+      <pre class="sh"><span class="cm"># in a checkout of this repository</span>
+pwsh -File engine/build_wasm.ps1</pre>
       </li>
     </ol>
 

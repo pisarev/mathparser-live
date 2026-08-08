@@ -2039,9 +2039,23 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   check("the run reached its end", false, e && e.stack
     ? String(e.stack).split(String.fromCharCode(10)).slice(0, 2).join(" ") : String(e));
   { /* the set may fail; it may not carry somebody else's work away */ }
-  restoreStorage();
   finish();
-});
+}).finally(restoreStorage);
+/*
+  Putting somebody else's memory back hangs on the end of the chain instead of
+  being placed by hand along the paths.
+
+  By hand there were two places: the normal end and the exception handler.
+  Between them lay an ordinary early exit - "the engine did not come up, return"
+  - which is not an exception, so the handler never saw it. The memory is
+  already cleared at that moment and there is nobody left to put it back: the
+  set walked away leaving an empty localStorage of that origin.
+
+  A finally covers all three endings alike. Restoring twice is harmless: it
+  clears and puts the saved values back, so the normal path, which restores
+  earlier and reloads the page, loses nothing - and whatever the page wrote
+  after that reload is cleaned up instead.
+*/
 
 function finish() {
   const bad = rows.filter(r => !r.pass).length;

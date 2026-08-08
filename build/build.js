@@ -1,6 +1,7 @@
 /*
-  Builds the offline site out of four pages: the showcase and three reference
-  pages.
+  Builds the showcase. The whole site is five pages: the showcase from here,
+  three reference pages from build_docs.js and the getting-started page from
+  build_start.js.
 
   They share one stylesheet (_css.txt), so a change to the style changes the
   whole site at once. The curves on the showcase are static SVG paths built from
@@ -88,6 +89,16 @@ const CSS = fs.readFileSync('_css.txt', 'utf8')
   .trim();
 
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+// A formula the reader will type into the parser. Marked apart from every other
+// <code>, because <code> here holds everything mixed together: operator signs,
+// method names, dates, fragments of syntax. Telling a formula from those by
+// guesswork is impossible - the classifier would itself become the new weak
+// spot. A release check pulls out what is marked and runs it through the real
+// parser, so a published example cannot be something the parser refuses. That is
+// exactly what happened to parse('2 + 3'): single quotes are not something the
+// parser takes, and the page printed them.
+const fx = s => `<code class="formula">${esc(s)}</code>`;
 
 /* ─── the geometry of the curves ────────────────────────────────────────── */
 
@@ -293,7 +304,7 @@ const RELEASES = [
       'None of the three Lazarus packages could be built by Lazarus itself - on Linux or on Windows, and before any of this as well. The build scripts pass unit paths on the command line and so never read the package description, which is why they stayed green. Three things were wrong in it: the tag was written UnitOutputDir where Lazarus reads UnitOutputDirectory and silently ignores anything else, so compiled units landed beside the sources and Lazarus then refused with "ambiguous unit"; three units the parser package needs were not listed in it at all; and the plotting component pulled in the Windows and Messages units on Free Pascal, so on Linux it did not compile at any version. All three are fixed, and a check now builds every package with lazbuild before a release goes out',
       'A compiled script outliving the parser that made it read freed memory. CompileScript hands the object to you, and the parser kept no note of it: when the parser went, the object was left holding a pointer to it. Ready read the generation of the parser through that pointer, and 1.0.8 had added a second read on the execution path itself - and the owner was only the first of several references, since the check on redirect assumptions reads the parser table and the executor holds pointers to methods of its objects. So the contract is now written down instead of patched: a compiled script is bound to the parser that built it. It may outlive the parser to be held, inspected and freed; it may not be evaluated afterwards. Ready goes out, Reason says the parser that compiled this script is gone, and Execute raises EJitOrphan - a refusal you can test for, in place of a read of freed memory',
       'TGraphEngine.Parser could be replaced while the workers were evaluating. The setter edited the table of the old parser, freed it when it owned it, and only then handed the new one to the threads - with no check that they had stopped, against the rule the parser itself publishes. It now stops them and waits',
-      'The plugin lost the first formula when the panel had not finished starting. It was remembered as sent before it was sent, and the panel drops what arrives too early, so the same formula was never offered again. Delivery is now reported back, and only what arrived is remembered',
+      'The plugin lost the first formula when the panel had not finished starting. It was remembered as sent before it was sent, and the panel drops what arrives too early, so the same formula was never offered again. The panel now holds a formula that arrives too early and hands it over itself once the page is up, and the plugin counts a formula as taken the moment the panel has either delivered it or accepted it for delivery. Only a new value is offered again',
       'ExecuteMany had two different meanings for False and three descriptions of them, no two alike. A short output array left the caller data untouched; a formula that did not parse left "not a number" behind. Now there is one meaning: before anything else the call fills every element it could have written with "not a number", so False says nothing in that range can be trusted. A formula the code generator turns down is not a refusal at all - it is evaluated the ordinary way and answers True. The bulk example checks its result now, which the surrounding text had been demanding of the reader while the example itself did not',
       'The same file said in one place that scripts with a redirect category are not compiled, and in another that the accelerator resolves the redirect chain while building. The second is what the code does',
       'The site promised one compiled script serving every thread. Each thread needs its own copy, redirected at its own variables - the address is resolved once, when the script is built, and a compiled script cannot pick two',
@@ -852,4 +863,4 @@ fs.writeFileSync('index.html', shell({
 }));
 
 console.log('index.html        ', (fs.statSync('index.html').size / 1024).toFixed(0), 'KB');
-module.exports = { shell, docHead, table, gotcha, m, esc, plate, PEN, byKey, pascal};
+module.exports = { shell, docHead, table, gotcha, m, esc, fx, plate, PEN, byKey, pascal};
