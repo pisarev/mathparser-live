@@ -451,18 +451,18 @@ pre.sh .cm{ color:var(--ink-soft) }
 
     <h2>Numbers</h2>
 
-    <div class="gotcha"><span class="k">The last bit depends on how you build</span><p><code>Extended</code> is 10 bytes on 32-bit Delphi and on FPC for Linux, and 8
-   bytes - the same as <code>Double</code> - on 64-bit Windows. The parser keeps
-   intermediates in <code>Extended</code>, so a long chain can end on a different
-   last bit depending on the target.</p><p>Concretely: <code>0.1 + 0.2</code> ends in <code>...3333</code> on the first pair
-   and <code>...3334</code> on the second. Both are correct roundings of different
+    <div class="gotcha"><span class="k">The last bit depends on how you build</span><p><code class="frag">Extended</code> is 10 bytes on 32-bit Delphi and on FPC for Linux, and 8
+   bytes - the same as <code class="frag">Double</code> - on 64-bit Windows. The parser keeps
+   intermediates in <code class="frag">Extended</code>, so a long chain can end on a different
+   last bit depending on the target.</p><p>Concretely: <code class="frag">0.1 + 0.2</code> ends in <code class="frag">...3333</code> on the first pair
+   and <code class="frag">...3334</code> on the second. Both are correct roundings of different
    intermediate precision. If you need one answer everywhere, round explicitly at
    the end.</p></div>
 
-    <div class="gotcha"><span class="k">Fractional powers under FPC on 64-bit Windows</span><p><code>2 ** 0.5</code> should equal <code>sqrt(2)</code> to the last bit. Under
+    <div class="gotcha"><span class="k">Fractional powers under FPC on 64-bit Windows</span><p><code class="frag">2 ** 0.5</code> should equal <code class="frag">sqrt(2)</code> to the last bit. Under
    Delphi and under FPC on Linux it does. Under FPC on 64-bit Windows it misses by
-   337 units in the last place, because <code>Power</code> there computes
-   <code>exp(y &times; ln x)</code> without the extra precision the other targets have.</p><p>Use <code>sqrt</code> for square roots and <code>intpower</code> for whole
+   337 units in the last place, because <code class="frag">Power</code> there computes
+   <code class="frag">exp(y &times; ln x)</code> without the extra precision the other targets have.</p><p>Use <code class="frag">sqrt</code> for square roots and <code class="frag">intpower</code> for whole
    exponents, both of which are exact.</p></div>
 
     <h2>Text</h2>
@@ -478,8 +478,8 @@ pre.sh .cm{ color:var(--ink-soft) }
     <div class="tw"><table>
       <thead><tr><th>Does not</th><th>Consequence</th></tr></thead>
       <tbody>
-      <tr><td>Run anywhere but x86-64</td><td>on ARM or 32-bit the IR executor answers instead - two to three times the interpreter, not the interpreter itself</td></tr>
-      <tr><td>Compile functions that take parameters</td><td><code>mean</code>, <code>poly</code> and friends fall back</td></tr>
+      <tr><td>Run anywhere but x86-64</td><td>on ARM or 32-bit the IR executor answers instead - faster than the interpreter, not the interpreter itself; the measured figure is in <code class="frag">jit/README.md</code></td></tr>
+      <tr><td>Compile functions that take parameters</td><td><code class="frag">mean</code>, <code class="frag">poly</code> and friends fall back</td></tr>
       <tr><td>Key its cache by shape</td><td>two formulas differing only in a constant compile twice</td></tr>
       </tbody>
     </table></div>
@@ -496,17 +496,16 @@ pre.sh .cm{ color:var(--ink-soft) }
       of it under a lock. Two threads meeting a formula the cache has not seen will
       both compile it and both write the list. One accelerating parser therefore
       belongs to one thread.</p>
-    <p>The way to evaluate in parallel is the one the plotting component uses, and
-      it needs no locks at all: compile the scripts up front on a single thread
-      with <code>CompileScript</code>, then execute the compiled
-      <code>TJitScript</code> from as many threads as you like, as long as each
-      one has its own. A compiled script does not change while it runs, but the
-      addresses it works with are baked into it when it is built: the redirect
-      chain is resolved once, at compile time. So a thread that needs its own
-      variables needs its own copy of the script, with its own category, compiled
-      separately - <code>Copy</code> the script, redirect the copy, compile that.
-      That is how a curve is sampled across four threads without four
-      parsers.</p>
+    <p>To evaluate in parallel, compile the scripts up front on a single thread
+      with <code class="frag">CompileScript</code>, then execute them. Executing a prepared
+      <code class="frag">TJitScript</code> does not modify it, so one script may run on several
+      threads at once - but only as far as everything it reaches allows that: the
+      variables it reads have to be safe to read concurrently, and so does every
+      function it calls. Both are yours, not the library's.</p>
+    <p>The addresses are baked in when the script is built: the redirect chain is
+      resolved once, at compile time. So a thread that needs its own variables
+      needs its own script, with its own category, compiled separately -
+      <code class="frag">Copy</code> the script, redirect the copy, compile that.</p>
 
     <h2>Plotting</h2>
     <div class="tw"><table>
@@ -521,7 +520,7 @@ pre.sh .cm{ color:var(--ink-soft) }
 
     <h2>What is deliberately absent</h2>
     <p>There is no complex arithmetic, no matrices, no units of measurement, and no
-      symbolic algebra beyond <code>deriv</code>. Adding any of them is possible
+      symbolic algebra beyond <code class="frag">deriv</code>. Adding any of them is possible
       through the function registry; none is built in.</p>
   </section>
 

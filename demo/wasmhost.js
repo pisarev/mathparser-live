@@ -154,10 +154,35 @@ function extremaCount(ys) {
   return e;
 }
 
+/*
+  The one place that accepts the page state.
+
+  The three actions are inseparable, and separating them was the defect: the
+  state was remembered in one place, the session written in another, the rebuild
+  done in a third, and each place took its own set of fields. That is how cleared
+  and sheets went missing - from the bookmark, from the session, from the host's
+  own memory.
+
+  The state is stored WHOLE, as it arrived. The host neither completes it nor
+  trims it: what the page sent is what comes back - together with the
+  deliberately empty sheet, the second coordinate system and the formula slot
+  from the editor.
+*/
+function acceptState(m) {
+  HOST.state = {
+    cs: m.cs, formulas: m.formulas, options: m.options,
+    cleared: !!m.cleared, sheets: m.sheets
+  };
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(HOST.state)); }
+  catch (e) { /* no storage - the session will not survive a reload, on we go */ }
+  doBuild(m);
+}
+
 function doBuild(m) {
   const o = m.options, polar = m.cs === "polar";
   HOST.opt = o;
-  HOST.state = { cs: m.cs, formulas: m.formulas, options: o };
+  // acceptState stores the state: storing it here would make it a projection
+  // again, one that loses cleared and sheets.
   reply({ type: "busy" });
 
   const t0 = performance.now();
@@ -878,7 +903,9 @@ const loadMarks = () => { try { return JSON.parse(localStorage.getItem(MARKS_KEY
 function doBookmark(m) {
   const marks = loadMarks();
   if (m.mode === "save") {
-    marks[m.slot] = { cs: HOST.state.cs, formulas: HOST.state.formulas, options: HOST.state.options };
+    // The whole state, not a projection of it: a bookmark that dropped
+    // cleared and sheets came back as somebody else's sheet.
+    marks[m.slot] = Object.assign({}, HOST.state);
     localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
   }
   if (m.mode === "load" && marks[m.slot]) {
@@ -915,15 +942,17 @@ function handle(m) {
       break;
     }
     case "build":
-      doBuild(m);
-      /*
-        The "emptied by the user" mark travels with the state. Without it an
-        empty list is indistinguishable from accidental emptiness, and the page
-        put the built-in example back on top of a blank sheet somebody had made
-        deliberately.
-      */
-      try { localStorage.setItem(STATE_KEY, JSON.stringify({ cs: m.cs, formulas: m.formulas, options: m.options, cleared: !!m.cleared, sheets: m.sheets })); }
-      catch (e) {}
+    /*
+      options arrives here too, and with the same contents.
+
+      There used to be no options branch at all, although nearly every switch
+      sends exactly that: settings that only affect drawing looked as if they
+      worked, while the ones needing a rebuild did nothing until some accidental
+      later build. The self-test hid this - after flipping a setting it called
+      build() by hand, which is not the path a person takes.
+    */
+    case "options":
+      acceptState(m);
       break;
     case "trace": doTrace(m); break;
     case "report": doReport(); break;

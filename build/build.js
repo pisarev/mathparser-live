@@ -91,7 +91,7 @@ const CSS = fs.readFileSync('_css.txt', 'utf8')
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 // A formula the reader will type into the parser. Marked apart from every other
-// <code>, because <code> here holds everything mixed together: operator signs,
+// <code class="frag">, because <code class="frag"> here holds everything mixed together: operator signs,
 // method names, dates, fragments of syntax. Telling a formula from those by
 // guesswork is impossible - the classifier would itself become the new weak
 // spot. A release check pulls out what is marked and runs it through the real
@@ -99,6 +99,32 @@ const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', 
 // exactly what happened to parse('2 + 3'): single quotes are not something the
 // parser takes, and the page printed them.
 const fx = s => `<code class="formula">${esc(s)}</code>`;
+
+/*
+  A piece of syntax: a name, an operator, a path, a call. Not a formula - nothing
+  evaluates it.
+
+  There are two helpers, and not for decoration. The review of 09.08.2026 showed
+  that runnable formulas were hiding in unmarked code spans and slipping past the
+  formula gate in silence: coverage depended on whether the author remembered to
+  mark them. Marking is mandatory now, and an unmarked span fails the build - see
+  typed() below.
+*/
+const frag = s => `<code class="frag">${esc(s)}</code>`;
+
+/*
+  The gate inside the build itself. It catches earlier than the release does, and
+  it catches the person editing the generator rather than the one reading a report
+  afterwards.
+*/
+function typed(html, where) {
+  const loose = (html.match(/<code(?![^>]*\bclass=)/g) || []).length;
+  if (loose) {
+    throw new Error(
+      `${where}: ${loose} code span(s) with no type. A formula is fx(), everything else is frag()`);
+  }
+  return html;
+}
 
 /* ─── the geometry of the curves ────────────────────────────────────────── */
 
@@ -183,7 +209,7 @@ const NAV = [
 ];
 
 function shell(opts) {
-  return `<!doctype html>
+  return typed(`<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -218,7 +244,7 @@ ${opts.body}
 </div>
 ${opts.script || ''}
 </body>
-</html>`;
+</html>`, opts.title);
 }
 
 // The head of a reference page: the title on the left, the introduction on the right.
@@ -524,7 +550,7 @@ const indexBody = `  <section class="hero">
 
     <div class="swap">
 <pre>${pascal('swap', 'show')}</pre>
-      <p class="undercode">Excerpt from <code>samples/docs/swap.dpr</code>: both
+      <p class="undercode">Excerpt from <code class="frag">samples/docs/swap.dpr</code>: both
         halves print the same 5.00, and the matrix runs the file to prove it.</p>
       <p class="said">One word, and the hot path becomes machine code. Everything
         else - the formulas, the variables, the calls - stays exactly as it
@@ -554,13 +580,13 @@ const indexBody = `  <section class="hero">
     </div>
     <p class="said">Operators here are registered functions whose precedence is a
       <b>value, not grammar</b>. Flip one and the same characters parse into a different
-      tree: raise <b>*</b> above <b>/</b> and <code>12 / 3 * 2</code> turns from 8 into 2
+      tree: raise <b>*</b> above <b>/</b> and <code class="frag">12 / 3 * 2</code> turns from 8 into 2
      - the bracketed line is the parser's own decompiler reporting the tree it
       actually built. <b>Coverage</b> is the second knob: how far a raised or lowered
       priority reaches. Comparison ships as <i>lower&nbsp;+&nbsp;total</i>, which is why
-      <code>1 + 2 = 3</code> compares the sum and answers -1, the parser's
-      <i>true</i>. Switch <code>=</code> to <i>local</i> and it binds neighbours only:
-      the same line now evaluates as <code>1 + (2 = 3)</code>, and the value flips to 1.
+      <code class="frag">1 + 2 = 3</code> compares the sum and answers -1, the parser's
+      <i>true</i>. Switch <code class="frag">=</code> to <i>local</i> and it binds neighbours only:
+      the same line now evaluates as <code class="frag">1 + (2 = 3)</code>, and the value flips to 1.
       The engine is the real parser, compiled to WebAssembly. Plus and minus have no
       knobs at all - they are how a script joins its items, not functions.
       Reload the page to reset.</p>
@@ -863,4 +889,4 @@ fs.writeFileSync('index.html', shell({
 }));
 
 console.log('index.html        ', (fs.statSync('index.html').size / 1024).toFixed(0), 'KB');
-module.exports = { shell, docHead, table, gotcha, m, esc, fx, plate, PEN, byKey, pascal};
+module.exports = { shell, docHead, table, gotcha, m, esc, fx, frag, typed, plate, PEN, byKey, pascal};

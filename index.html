@@ -515,7 +515,7 @@ P := TJitParser.Create(<span class="kw">nil</span>);
 <span class="kw">finally</span>
   P.Free;
 <span class="kw">end</span>;</pre>
-      <p class="undercode">Excerpt from <code>samples/docs/swap.dpr</code>: both
+      <p class="undercode">Excerpt from <code class="frag">samples/docs/swap.dpr</code>: both
         halves print the same 5.00, and the matrix runs the file to prove it.</p>
       <p class="said">One word, and the hot path becomes machine code. Everything
         else - the formulas, the variables, the calls - stays exactly as it
@@ -545,13 +545,13 @@ P := TJitParser.Create(<span class="kw">nil</span>);
     </div>
     <p class="said">Operators here are registered functions whose precedence is a
       <b>value, not grammar</b>. Flip one and the same characters parse into a different
-      tree: raise <b>*</b> above <b>/</b> and <code>12 / 3 * 2</code> turns from 8 into 2
+      tree: raise <b>*</b> above <b>/</b> and <code class="frag">12 / 3 * 2</code> turns from 8 into 2
      - the bracketed line is the parser's own decompiler reporting the tree it
       actually built. <b>Coverage</b> is the second knob: how far a raised or lowered
       priority reaches. Comparison ships as <i>lower&nbsp;+&nbsp;total</i>, which is why
-      <code>1 + 2 = 3</code> compares the sum and answers -1, the parser's
-      <i>true</i>. Switch <code>=</code> to <i>local</i> and it binds neighbours only:
-      the same line now evaluates as <code>1 + (2 = 3)</code>, and the value flips to 1.
+      <code class="frag">1 + 2 = 3</code> compares the sum and answers -1, the parser's
+      <i>true</i>. Switch <code class="frag">=</code> to <i>local</i> and it binds neighbours only:
+      the same line now evaluates as <code class="frag">1 + (2 = 3)</code>, and the value flips to 1.
       The engine is the real parser, compiled to WebAssembly. Plus and minus have no
       knobs at all - they are how a script joins its items, not functions.
       Reload the page to reset.</p>

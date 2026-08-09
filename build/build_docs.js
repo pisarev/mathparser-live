@@ -10,21 +10,21 @@
 */
 const fs = require('fs');
 const path = require('path');
-const { shell, docHead, table, gotcha, m, esc, fx, pascal } = require('./build.js');
+const { shell, docHead, table, gotcha, m, esc, fx, frag, pascal } = require('./build.js');
 
 /* ═══ syntax ════════════════════════════════════════════════════════════ */
 
 const OPS = [
-  ['<code>+ - * /</code>', 'the usual four', 'normal'],
-  ['<code>**</code>', 'power - <code>2 ** 10</code> is 1024', 'higher'],
-  ['<code>//</code>', 'root - <code>8 // 3</code> is 2', 'higher'],
-  ['<code>degree</code>', 'power again, spelled out', 'higher'],
-  ['<code>div  mod</code>', 'integer quotient and remainder', 'normal'],
-  ['<code>!</code>', 'logical not, written before the value', 'lower'],
-  ['<code>= &lt;&gt; &gt; &lt; &gt;= &lt;=</code>', 'comparison - answers -1 or 0', 'lower'],
-  ['<code>and or xor not</code>', 'logic', 'lower'],
-  ['<code>&amp; | ~ bxor</code>', 'bitwise and, or, not, xor', 'lower'],
-  ['<code>shl shr</code>', 'bit shifts', 'normal'],
+  ['<code class="frag">+ - * /</code>', 'the usual four', 'normal'],
+  ['<code class="frag">**</code>', 'power - <code class="frag">2 ** 10</code> is 1024', 'higher'],
+  ['<code class="frag">//</code>', 'root - <code class="frag">8 // 3</code> is 2', 'higher'],
+  ['<code class="frag">degree</code>', 'power again, spelled out', 'higher'],
+  ['<code class="frag">div  mod</code>', 'integer quotient and remainder', 'normal'],
+  ['<code class="frag">!</code>', 'logical not, written before the value', 'lower'],
+  ['<code class="frag">= &lt;&gt; &gt; &lt; &gt;= &lt;=</code>', 'comparison - answers -1 or 0', 'lower'],
+  ['<code class="frag">and or xor not</code>', 'logic', 'lower'],
+  ['<code class="frag">&amp; | ~ bxor</code>', 'bitwise and, or, not, xor', 'lower'],
+  ['<code class="frag">shl shr</code>', 'bit shifts', 'normal'],
 ];
 
 const FXGROUPS = [
@@ -52,36 +52,36 @@ const syntaxBody = docHead('Syntax', [
       its author. They are listed first for that reason.</p>
 
 ${gotcha('Power is ** - not ^', [
-  `<code>^</code> is <b>exclusive or</b>, not exponentiation. <code>x ^ 2</code>
-   quietly returns <code>x xor 2</code>, which is a perfectly good number and
+  `<code class="frag">^</code> is <b>exclusive or</b>, not exponentiation. <code class="frag">x ^ 2</code>
+   quietly returns <code class="frag">x xor 2</code>, which is a perfectly good number and
    almost never the one you meant.`,
-  `Write <code>x ** 2</code>, or spell it <code>x degree 2</code>.`
+  `Write <code class="frag">x ** 2</code>, or spell it <code class="frag">x degree 2</code>.`
 ])}
 
 ${gotcha('Two slashes are a root, not a comment', [
-  `<code>//</code> takes a root: <code>8 // 3</code> is 2. There are no comments
+  `<code class="frag">//</code> takes a root: <code class="frag">8 // 3</code> is 2. There are no comments
    inside a formula, so nothing is being ignored.`
 ])}
 
 ${gotcha('Comparison answers minus one', [
-  `A true comparison returns <code>-1</code>, false returns <code>0</code> -
+  `A true comparison returns <code class="frag">-1</code>, false returns <code class="frag">0</code> -
    the Pascal convention for a boolean stored as a number. So
-   <code>(3 &gt; 2) + 1</code> is <code>0</code>, not <code>2</code>.`,
-  `Use <code>AsBoolean</code> if you want a Pascal <code>Boolean</code> back.`
+   <code class="frag">(3 &gt; 2) + 1</code> is <code class="frag">0</code>, not <code class="frag">2</code>.`,
+  `Use <code class="frag">AsBoolean</code> if you want a Pascal <code class="frag">Boolean</code> back.`
 ])}
 
 ${gotcha('Case never separates two names', [
-  `<code>Sin</code>, <code>sin</code> and <code>SIN</code> are one built-in, and a
-   variable registered as <code>Rate</code> also answers to <code>rate</code> and
-   <code>RATE</code>. Since case does not tell two names apart, registering a
-   second <code>rate</code> beside an existing <code>Rate</code> is refused
+  `<code class="frag">Sin</code>, <code class="frag">sin</code> and <code class="frag">SIN</code> are one built-in, and a
+   variable registered as <code class="frag">Rate</code> also answers to <code class="frag">rate</code> and
+   <code class="frag">RATE</code>. Since case does not tell two names apart, registering a
+   second <code class="frag">rate</code> beside an existing <code class="frag">Rate</code> is refused
    rather than shadowing it.`
 ])}
 
     <h2>Operators</h2>
     <p>Higher binds tighter. The two that matter: power and root bind tighter than
-      multiplication, so <code>2 * 3 ** 2</code> is 18, and comparison binds
-      loosest, so <code>a + b &gt; c</code> compares the sum.</p>
+      multiplication, so <code class="frag">2 * 3 ** 2</code> is 18, and comparison binds
+      loosest, so <code class="frag">a + b &gt; c</code> compares the sum.</p>
 
 ${table(['Operator', 'Means', 'Binds'], OPS.map(o => [o[0], o[1], `<span class="m">${o[2]}</span>`]))}
 
@@ -90,29 +90,34 @@ ${table(['Operator', 'Means', 'Binds'], OPS.map(o => [o[0], o[1], `<span class="
       floats, booleans, strings, dates and pointers. You never declare any of it -
       ask for the type you want and the conversion happens on the way out.</p>
 
+${/*
+    The middle column is fx(), not frag(): these are runnable formulas, and the
+    probe has to evaluate them. While they sat in unmarked code spans the formula
+    gate did not see them at all - that case is exactly why there are two helpers.
+  */''}
 ${table(['Call', 'Formula', 'Answer'], [
-  ['<code>AsInteger</code>', '<code>2 ** 10</code>', '<code>1024</code>'],
-  ['<code>AsDouble</code>', '<code>pi / 6</code>', '<code>0.5235988</code>'],
-  ['<code>AsExtended</code>', '<code>sqrt(2)</code>', '<code>1.4142136</code>'],
-  ['<code>AsBoolean</code>', '<code>3 &gt; 2</code>', '<code>True</code>'],
-  ['<code>AsString</code>', '<code>2 + 2</code>', "<code>'4'</code>"],
-  ['<code>AsDateTime</code>', '<code>encodedate(2026, 7, 24)</code>', '<code>2026-07-24</code>'],
+  [frag('AsInteger'), fx('2 ** 10'), frag('1024')],
+  [frag('AsDouble'), fx('pi / 6'), frag('0.5235988')],
+  [frag('AsExtended'), fx('sqrt(2)'), frag('1.4142136')],
+  [frag('AsBoolean'), fx('3 > 2'), frag('True')],
+  [frag('AsString'), fx('2 + 2'), frag("'4'")],
+  [frag('AsDateTime'), fx('encodedate(2026, 7, 24)'), frag('2026-07-24')],
 ])}
 
     <h2>Control inside a formula</h2>
-    <p>A formula is not limited to arithmetic. <code>if</code> is lazy - only the
-      branch that is taken gets evaluated, so <code>if(x &lt;&gt; 0, 1 / x, 0)</code> is
-      safe. Loops carry their own counter, and <code>exit</code> ends the whole
+    <p>A formula is not limited to arithmetic. <code class="frag">if</code> is lazy - only the
+      branch that is taken gets evaluated, so <code class="frag">if(x &lt;&gt; 0, 1 / x, 0)</code> is
+      safe. Loops carry their own counter, and <code class="frag">exit</code> ends the whole
       script with a value.</p>
 
 ${table(['Written', 'Does'], [
-  ['<code>if(cond, then, else)</code>', 'evaluates one branch, never both'],
-  ['<code>while(cond, body)</code>', 'repeats while the condition holds'],
-  ['<code>repeat(body, cond)</code>', 'runs the body, then tests'],
-  ['<code>for(name, from, to, body)</code>', 'counted loop with its own variable'],
-  ['<code>exit(value)</code>', 'ends the script there and then'],
-  ['<code>tryexcept(body, fallback)</code>', 'the fallback answers if the body raises'],
-  ['<code>new(name, value)</code> <code>get</code> <code>set</code>', 'variables that live inside the script'],
+  ['<code class="frag">if(cond, then, else)</code>', 'evaluates one branch, never both'],
+  ['<code class="frag">while(cond, body)</code>', 'repeats while the condition holds'],
+  ['<code class="frag">repeat(body, cond)</code>', 'runs the body, then tests'],
+  ['<code class="frag">for(name, from, to, body)</code>', 'counted loop with its own variable'],
+  ['<code class="frag">exit(value)</code>', 'ends the script there and then'],
+  ['<code class="frag">tryexcept(body, fallback)</code>', 'the fallback answers if the body raises'],
+  ['<code class="frag">new(name, value)</code> <code class="frag">get</code> <code class="frag">set</code>', 'variables that live inside the script'],
 ])}
 
     <h2>Two that read their own arguments</h2>
@@ -124,13 +129,13 @@ ${table(['Written', 'Does'], [
     <p class="wide note">Grouped by what they are for. Every name is registered at
       startup and can be replaced or extended with your own.</p>
     <p class="wide note">The parser answers to 249 names in all. Besides the 163
-      functions below, 62 of them are constants (<code>pi</code>,
-      <code>true</code>, the month and weekday names, <code>maxint64</code>,
-      <code>kilobyte</code>), 15 are service entries that drive the parser
-      itself (<code>new</code>, <code>get</code>, <code>set</code>,
-      <code>execute</code>, <code>parse</code>, <code>script</code>), and 9 are
-      operators written as words (<code>and</code>, <code>or</code>,
-      <code>div</code>, <code>mod</code>, <code>shl</code>). All these counts
+      functions below, 62 of them are constants (<code class="frag">pi</code>,
+      <code class="frag">true</code>, the month and weekday names, <code class="frag">maxint64</code>,
+      <code class="frag">kilobyte</code>), 15 are service entries that drive the parser
+      itself (<code class="frag">new</code>, <code class="frag">get</code>, <code class="frag">set</code>,
+      <code class="frag">execute</code>, <code class="frag">parse</code>, <code class="frag">script</code>), and 9 are
+      operators written as words (<code class="frag">and</code>, <code class="frag">or</code>,
+      <code class="frag">div</code>, <code class="frag">mod</code>, <code class="frag">shl</code>). All these counts
       come from a probe built against the sources of this release, not from
       memory.</p>
 
@@ -152,18 +157,18 @@ fs.writeFileSync('syntax.html', shell({
 /* ═══ the accelerator ═══════════════════════════════════════════════════ */
 
 const COMPILED = [
-  ['Arithmetic', '<code>+ - &times; &divide;</code>, signs, nested brackets, constants'],
+  ['Arithmetic', '<code class="frag">+ - &times; &divide;</code>, signs, nested brackets, constants'],
   ['Comparison', 'all six, with the epsilon the parser is configured with'],
-  ['Branching', '<code>if</code>, <code>while</code>, <code>repeat</code> - lazily, as the interpreter does'],
-  ['Variables', 'both kinds: bound by typed reference, and boxed in a <code>TValue</code>'],
-  ['Scope', '<code>get</code> and <code>set</code> on script variables'],
-  ['Calls', '<code>sin cos tan sqrt sqr ln exp abs arctan</code>'],
+  ['Branching', '<code class="frag">if</code>, <code class="frag">while</code>, <code class="frag">repeat</code> - lazily, as the interpreter does'],
+  ['Variables', 'both kinds: bound by typed reference, and boxed in a <code class="frag">TValue</code>'],
+  ['Scope', '<code class="frag">get</code> and <code class="frag">set</code> on script variables'],
+  ['Calls', '<code class="frag">sin cos tan sqrt sqr ln exp abs arctan</code>'],
 ];
 
 const DECLINED = [
   ['A call it has no machine version of', 'anything outside the nine above'],
-  ['A function with parameters', '<code>mean</code>, <code>poly</code> and the rest of the variadic set'],
-  ['A string constant', 'the code generator works in <code>Double</code> only'],
+  ['A function with parameters', '<code class="frag">mean</code>, <code class="frag">poly</code> and the rest of the variadic set'],
+  ['A string constant', 'the code generator works in <code class="frag">Double</code> only'],
   ['An integer beyond exact range', 'above 2<sup>53</sup> a Double stops counting by ones'],
   ['A variable it cannot type', 'a type with no machine representation'],
   ['A frame deeper than 4 KB', 'a formula with hundreds of live intermediates'],
@@ -200,7 +205,7 @@ const accelBody = docHead('The accelerator', [
   `The parser compiles a formula to byte-code once and interprets it after that.
    The accelerator goes one step further: it turns the byte-code into x86-64
    machine code and calls it directly. The API does not change - you construct
-   <code>TJitParser</code> instead of <code>TMathParser</code> and carry on.`,
+   <code class="frag">TJitParser</code> instead of <code class="frag">TMathParser</code> and carry on.`,
   `The rule it never breaks: anything it cannot compile falls to the stage below
    it - the intermediate one, and the interpreter behind that. That fall back is
    not a setting: there is no way to switch it off, because <b>fast but wrong</b>
@@ -213,7 +218,7 @@ ${table(['Kind', 'Covered'], COMPILED)}
     <h2>What it declines</h2>
     <p>Each of these hands the formula down a stage, whole: to the intermediate
       one, and to the interpreter if that declines it too. The reason
-      is available as <code>CodeReason</code> if you want to know why a particular
+      is available as <code class="frag">CodeReason</code> if you want to know why a particular
       formula did not compile.</p>
 
 ${table(['Declines', 'Because'], DECLINED)}
@@ -225,7 +230,7 @@ ${table(['Declines', 'Because'], DECLINED)}
       that is already parsed - the interpreter walking the script against machine
       code running it; the loop row is one iteration inside a script that loops ten
       thousand times; the bulk rows are one input out of an array handed over in a
-      single call, against the same inputs fed one <code>AsDouble</code> at a
+      single call, against the same inputs fed one <code class="frag">AsDouble</code> at a
       time.</p>
     <p>Measured on Delphi 13, Windows, x86-64. The number of runs each row was
       averaged over is in the table, because it is not the same for all of them.
@@ -246,8 +251,8 @@ ${table(['Formula', 'Interpreted', 'Compiled', 'Times faster', 'Runs'],
       says why in one word, and the stage below answers instead.</p>
 
 ${gotcha('One number will differ, and here is why', [
-  `The interpreter keeps intermediate values in <code>Extended</code>; the
-   accelerator works in <code>Double</code>. On a build where <code>Extended</code>
+  `The interpreter keeps intermediate values in <code class="frag">Extended</code>; the
+   accelerator works in <code class="frag">Double</code>. On a build where <code class="frag">Extended</code>
    is wider than 64 bits - 32-bit Delphi, and FPC on Linux - the last bit of a
    long chain can differ between the two.`,
   `The fuzzer compares within an epsilon, so it passes; a bit-exact comparison
@@ -258,7 +263,7 @@ ${gotcha('One number will differ, and here is why', [
     <h2>What it needs</h2>
 ${table(['Requirement', 'Detail'], [
   ['Processor', 'x86-64 only - there is no ARM or 32-bit code generator'],
-  ['Operating system', 'Windows and Linux; memory is taken with <code>VirtualAlloc</code> or <code>mmap</code> as appropriate'],
+  ['Operating system', 'Windows and Linux; memory is taken with <code class="frag">VirtualAlloc</code> or <code class="frag">mmap</code> as appropriate'],
   ['Memory protection', 'the page is writable while the code is emitted, then read and execute - never both at once, so W^X is respected'],
   ['Fallback', 'on any other target the machine-code stage is skipped and the intermediate one answers, with the interpreter behind it - nothing breaks'],
 ])}
@@ -281,22 +286,22 @@ const limitsBody = docHead('Limitations', [
     <h2>Numbers</h2>
 
 ${gotcha('The last bit depends on how you build', [
-  `<code>Extended</code> is 10 bytes on 32-bit Delphi and on FPC for Linux, and 8
-   bytes - the same as <code>Double</code> - on 64-bit Windows. The parser keeps
-   intermediates in <code>Extended</code>, so a long chain can end on a different
+  `<code class="frag">Extended</code> is 10 bytes on 32-bit Delphi and on FPC for Linux, and 8
+   bytes - the same as <code class="frag">Double</code> - on 64-bit Windows. The parser keeps
+   intermediates in <code class="frag">Extended</code>, so a long chain can end on a different
    last bit depending on the target.`,
-  `Concretely: <code>0.1 + 0.2</code> ends in <code>...3333</code> on the first pair
-   and <code>...3334</code> on the second. Both are correct roundings of different
+  `Concretely: <code class="frag">0.1 + 0.2</code> ends in <code class="frag">...3333</code> on the first pair
+   and <code class="frag">...3334</code> on the second. Both are correct roundings of different
    intermediate precision. If you need one answer everywhere, round explicitly at
    the end.`
 ])}
 
 ${gotcha('Fractional powers under FPC on 64-bit Windows', [
-  `<code>2 ** 0.5</code> should equal <code>sqrt(2)</code> to the last bit. Under
+  `<code class="frag">2 ** 0.5</code> should equal <code class="frag">sqrt(2)</code> to the last bit. Under
    Delphi and under FPC on Linux it does. Under FPC on 64-bit Windows it misses by
-   337 units in the last place, because <code>Power</code> there computes
-   <code>exp(y &times; ln x)</code> without the extra precision the other targets have.`,
-  `Use <code>sqrt</code> for square roots and <code>intpower</code> for whole
+   337 units in the last place, because <code class="frag">Power</code> there computes
+   <code class="frag">exp(y &times; ln x)</code> without the extra precision the other targets have.`,
+  `Use <code class="frag">sqrt</code> for square roots and <code class="frag">intpower</code> for whole
    exponents, both of which are exact.`
 ])}
 
@@ -311,8 +316,11 @@ ${gotcha('Fractional powers under FPC on 64-bit Windows', [
 
     <h2>The accelerator</h2>
 ${table(['Does not', 'Consequence'], [
-  ['Run anywhere but x86-64', 'on ARM or 32-bit the IR executor answers instead - two to three times the interpreter, not the interpreter itself'],
-  ['Compile functions that take parameters', '<code>mean</code>, <code>poly</code> and friends fall back'],
+  // The figure is not repeated here: it was measured once and lives in
+  // jit/README.md. A second, different range used to stand here and disagreed
+  // with the measured one.
+  ['Run anywhere but x86-64', 'on ARM or 32-bit the IR executor answers instead - faster than the interpreter, not the interpreter itself; the measured figure is in <code class="frag">jit/README.md</code>'],
+  ['Compile functions that take parameters', '<code class="frag">mean</code>, <code class="frag">poly</code> and friends fall back'],
   ['Key its cache by shape', 'two formulas differing only in a constant compile twice'],
 ])}
 
@@ -328,17 +336,16 @@ ${table(['Does not', 'Consequence'], [
       of it under a lock. Two threads meeting a formula the cache has not seen will
       both compile it and both write the list. One accelerating parser therefore
       belongs to one thread.</p>
-    <p>The way to evaluate in parallel is the one the plotting component uses, and
-      it needs no locks at all: compile the scripts up front on a single thread
-      with <code>CompileScript</code>, then execute the compiled
-      <code>TJitScript</code> from as many threads as you like, as long as each
-      one has its own. A compiled script does not change while it runs, but the
-      addresses it works with are baked into it when it is built: the redirect
-      chain is resolved once, at compile time. So a thread that needs its own
-      variables needs its own copy of the script, with its own category, compiled
-      separately - <code>Copy</code> the script, redirect the copy, compile that.
-      That is how a curve is sampled across four threads without four
-      parsers.</p>
+    <p>To evaluate in parallel, compile the scripts up front on a single thread
+      with <code class="frag">CompileScript</code>, then execute them. Executing a prepared
+      <code class="frag">TJitScript</code> does not modify it, so one script may run on several
+      threads at once - but only as far as everything it reaches allows that: the
+      variables it reads have to be safe to read concurrently, and so does every
+      function it calls. Both are yours, not the library&#39;s.</p>
+    <p>The addresses are baked in when the script is built: the redirect chain is
+      resolved once, at compile time. So a thread that needs its own variables
+      needs its own script, with its own category, compiled separately -
+      <code class="frag">Copy</code> the script, redirect the copy, compile that.</p>
 
     <h2>Plotting</h2>
 ${table(['Limit', 'Detail'], [
@@ -350,7 +357,7 @@ ${table(['Limit', 'Detail'], [
 
     <h2>What is deliberately absent</h2>
     <p>There is no complex arithmetic, no matrices, no units of measurement, and no
-      symbolic algebra beyond <code>deriv</code>. Adding any of them is possible
+      symbolic algebra beyond <code class="frag">deriv</code>. Adding any of them is possible
       through the function registry; none is built in.</p>
   </section>`;
 

@@ -65,9 +65,9 @@ const startBody = docHead('Start here', [
 ${steps([
   ['Unpack the sources anywhere',
    `<p>The library is plain Pascal: no build step, no generated headers, no
-      package manager. Say it lives in <code>C:\\lib\\pascal-mathparser</code>.</p>`],
+      package manager. Say it lives in <code class="frag">C:\\lib\\pascal-mathparser</code>.</p>`],
   ['Point the compiler at two folders',
-   `<p><code>src</code> is the parser, <code>jit</code> is the accelerator. The
+   `<p><code class="frag">src</code> is the parser, <code class="frag">jit</code> is the accelerator. The
       second is optional - leave it out and the interpreter answers.</p>`],
   ['Compile and run',
    shellBlock([
@@ -78,23 +78,30 @@ ${steps([
      'dcc64 -U C:\\lib\\pascal-mathparser\\src hero.dpr',
      'hero.exe',
      '',
-     '# Free Pascal on Windows',
-     'fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.dpr',
+     '# Free Pascal, any platform',
+     'fpc -MDelphi -dNOFORMS -dNOGRAPHICS \\',
+     '    -Fu/lib/pascal-mathparser/src/compat \\',
+     '    -Fu/lib/pascal-mathparser/src \\',
+     '    -Fi/lib/pascal-mathparser/src hero.dpr',
      './hero',
    ])],
 ])}
 
     <p class="undercode">It prints <b>4</b>. That file is
-      <code>samples/docs/hero.dpr</code> in the repository, and the build matrix
+      <code class="frag">samples/docs/hero.dpr</code> in the repository, and the build matrix
       compiles and runs it on every target before a release, so it cannot rot.</p>
 
-${gotcha('On FPC outside Windows, add one folder', [
-  `<code>src/compat</code> holds a stand-in for a unit that only exists on
-   Windows. With it the library needs nothing but the RTL - no LCL, no LazUtils,
-   no Lazarus at all:`,
-  `<code>fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu.../src/compat -Fu.../src -Fi.../src hero.dpr</code>
-   <br>The set is the one the Linux matrix uses in
-   <code>tests/build_parser_linux.sh</code>, not a shortened version of it.`
+${gotcha('Why the Free Pascal line carries four switches', [
+  `<code class="frag">src/compat</code> holds stand-ins for units that exist only on Windows,
+   and <code class="frag">-Fi</code> points at the include files. Without either of them the
+   build stops - measured on Windows as well, where it fails in
+   <code class="frag">Parser.pas</code> long before any GUI unit is reached.`,
+  `<code class="frag">-dNOFORMS -dNOGRAPHICS</code> leave the GUI out. On Windows the build
+   survives without them; outside Windows it does not, because the thread unit
+   reaches for <code class="frag">Forms</code>. One set that works everywhere is worth more
+   than two recipes, one of which the reader has to pick correctly.`,
+  `It is the same set the Linux matrix uses in
+   <code class="frag">tests/build_parser_linux.sh</code>, not a shortened version of it.`
 ])}
 
     <h2 id="delphi">Delphi: into a project you already have</h2>
@@ -105,35 +112,35 @@ ${gotcha('On FPC outside Windows, add one folder', [
     <h3>With the palette</h3>
 ${steps([
   ['Build the two runtime packages first',
-   `<p><code>packages/delphi/crosspascal_parser.dpk</code>, then
-      <code>crosspascal_parserjit.dpk</code>. Open each and use
+   `<p><code class="frag">packages/delphi/crosspascal_parser.dpk</code>, then
+      <code class="frag">crosspascal_parserjit.dpk</code>. Open each and use
       <b>Project, Build</b>. The design-time package requires both, and the IDE
       does not build them for you: installing without them stops at
-      <code>E2202 Required package 'crosspascal_parser' not found</code>.</p>`],
+      <code class="frag">E2202 Required package 'crosspascal_parser' not found</code>.</p>`],
   ['Open the design-time package',
-   `<p><code>packages/delphi/crosspascal_parser_dsgn.dpk</code>. It contains the
+   `<p><code class="frag">packages/delphi/crosspascal_parser_dsgn.dpk</code>. It contains the
       registration unit and nothing else.</p>`],
   ['Press Install',
    `<p>A palette page named <b>CrossPascal</b> appears with the parser, the
-      calculator, the value list and the threads. Drop <code>TMathParser</code>
+      calculator, the value list and the threads. Drop <code class="frag">TMathParser</code>
       on a form and it works from the Object Inspector.</p>`],
   ['Add the library path once',
-   `<p>Tools, Options, Library, Library path - add <code>src</code> and
-      <code>jit</code>. Without it the IDE finds the components but the compiler
+   `<p>Tools, Options, Library, Library path - add <code class="frag">src</code> and
+      <code class="frag">jit</code>. Without it the IDE finds the components but the compiler
       does not find the units.</p>`],
 ])}
 
     <h3>Without the palette</h3>
-    <p>Project, Options, Delphi Compiler, Search path: add <code>src</code>, and
-      <code>jit</code> if you want the accelerator. Then create the parser in
+    <p>Project, Options, Delphi Compiler, Search path: add <code class="frag">src</code>, and
+      <code class="frag">jit</code> if you want the accelerator. Then create the parser in
       code as the samples do. Nothing is installed into the IDE, which is the
       point when the project is built on a machine you do not control.</p>
 
 ${gotcha('The handle type, once', [
   `Registering your own function needs a handle variable, and its type must be
-   <code>TFunctionHandle</code> from <code>ParseTypes</code> - not the plain
-   <code>NativeInt</code>. On Delphi 12 and later the library defines its own
-   <code>NativeInt</code>, the <code>var</code> parameter refuses the system one,
+   <code class="frag">TFunctionHandle</code> from <code class="frag">ParseTypes</code> - not the plain
+   <code class="frag">NativeInt</code>. On Delphi 12 and later the library defines its own
+   <code class="frag">NativeInt</code>, the <code class="frag">var</code> parameter refuses the system one,
    and the compiler says only that no overload matches.`
 ])}
 
@@ -141,9 +148,9 @@ ${gotcha('The handle type, once', [
 ${steps([
   ['Open the package',
    `<p>Package, Open package file, then
-      <code>packages/lazarus/crosspascal_parser.lpk</code>. Compile it.</p>`],
+      <code class="frag">packages/lazarus/crosspascal_parser.lpk</code>. Compile it.</p>`],
   ['Add the accelerator if you want it',
-   `<p><code>crosspascal_parserjit.lpk</code>, same way. It depends on the first
+   `<p><code class="frag">crosspascal_parserjit.lpk</code>, same way. It depends on the first
       package, so open them in that order.</p>`],
   ['Use in a project',
    `<p>Package, Open recent, then <b>Use, Add to project</b>. Installing into the
@@ -187,7 +194,7 @@ ${shellBlock([
 ])}
     <p>This is the build that ships. It wants the parser and the plotting engine
       cloned beside the plugin, because the project file names them by relative
-      path, and it wants <code>WEBVIEW4DELPHI</code> pointing at a checkout of
+      path, and it wants <code class="frag">WEBVIEW4DELPHI</code> pointing at a checkout of
       that library - the script registers its Lazarus package itself.</p>
 
     <h3>Delphi</h3>
@@ -212,15 +219,15 @@ ${shellBlock([
 
 ${steps([
   ['Take three files',
-   `<p><code>parsewasm.wasm</code> - the engine; <code>wasmhost.js</code> - the
+   `<p><code class="frag">parsewasm.wasm</code> - the engine; <code class="frag">wasmhost.js</code> - the
       bridge; and the page that talks to it. They sit next to each other and are
       loaded as static files. No server code is involved.</p>`],
   ['Serve them over http',
-   `<p>WebAssembly is fetched, so <code>file://</code> will not do. Any static
+   `<p>WebAssembly is fetched, so <code class="frag">file://</code> will not do. Any static
       server works:</p>
       ${shellBlock(['python -m http.server 8080'])}`],
   ['Or rebuild the engine yourself',
-   `<p>Needs the FPC cross compiler for <code>wasm32-wasip1</code>, built from
+   `<p>Needs the FPC cross compiler for <code class="frag">wasm32-wasip1</code>, built from
       the FPC sources. The two commands run in different folders, so each says
       where it starts:</p>
       ${shellBlock([
@@ -246,12 +253,12 @@ ${gotcha('What the browser cannot do', [
 ${steps([
   ['Add the paths',
    `<p>The plotting engine lives beside the parser. Add its folder to the search
-      path along with <code>src</code>; on Lazarus open
-      <code>crosspascal_graph.lpk</code> instead.</p>`],
+      path along with <code class="frag">src</code>; on Lazarus open
+      <code class="frag">crosspascal_graph.lpk</code> instead.</p>`],
   ['Drop the component on a form',
    `<p>With the design-time package installed it is on the <b>CrossPascal</b>
       palette page. Without it, create the component in code - it is an ordinary
-      <code>TCustomControl</code> descendant.</p>`],
+      <code class="frag">TCustomControl</code> descendant.</p>`],
   ['Give it formulas',
    `<p>The component owns the parser, samples the curve across threads and draws
       the result. Redirection is what makes the threads safe: every worker gets

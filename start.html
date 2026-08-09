@@ -477,11 +477,11 @@ pre.sh .cm{ color:var(--ink-soft) }
       <li>
         <h4>Unpack the sources anywhere</h4>
         <p>The library is plain Pascal: no build step, no generated headers, no
-      package manager. Say it lives in <code>C:\lib\pascal-mathparser</code>.</p>
+      package manager. Say it lives in <code class="frag">C:\lib\pascal-mathparser</code>.</p>
       </li>
       <li>
         <h4>Point the compiler at two folders</h4>
-        <p><code>src</code> is the parser, <code>jit</code> is the accelerator. The
+        <p><code class="frag">src</code> is the parser, <code class="frag">jit</code> is the accelerator. The
       second is optional - leave it out and the interpreter answers.</p>
       </li>
       <li>
@@ -493,21 +493,27 @@ cd samples/docs
 dcc64 -U C:\lib\pascal-mathparser\src hero.dpr
 hero.exe
 
-<span class="cm"># Free Pascal on Windows</span>
-fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.dpr
+<span class="cm"># Free Pascal, any platform</span>
+fpc -MDelphi -dNOFORMS -dNOGRAPHICS \
+    -Fu/lib/pascal-mathparser/src/compat \
+    -Fu/lib/pascal-mathparser/src \
+    -Fi/lib/pascal-mathparser/src hero.dpr
 ./hero</pre>
       </li>
     </ol>
 
     <p class="undercode">It prints <b>4</b>. That file is
-      <code>samples/docs/hero.dpr</code> in the repository, and the build matrix
+      <code class="frag">samples/docs/hero.dpr</code> in the repository, and the build matrix
       compiles and runs it on every target before a release, so it cannot rot.</p>
 
-    <div class="gotcha"><span class="k">On FPC outside Windows, add one folder</span><p><code>src/compat</code> holds a stand-in for a unit that only exists on
-   Windows. With it the library needs nothing but the RTL - no LCL, no LazUtils,
-   no Lazarus at all:</p><p><code>fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu.../src/compat -Fu.../src -Fi.../src hero.dpr</code>
-   <br>The set is the one the Linux matrix uses in
-   <code>tests/build_parser_linux.sh</code>, not a shortened version of it.</p></div>
+    <div class="gotcha"><span class="k">Why the Free Pascal line carries four switches</span><p><code class="frag">src/compat</code> holds stand-ins for units that exist only on Windows,
+   and <code class="frag">-Fi</code> points at the include files. Without either of them the
+   build stops - measured on Windows as well, where it fails in
+   <code class="frag">Parser.pas</code> long before any GUI unit is reached.</p><p><code class="frag">-dNOFORMS -dNOGRAPHICS</code> leave the GUI out. On Windows the build
+   survives without them; outside Windows it does not, because the thread unit
+   reaches for <code class="frag">Forms</code>. One set that works everywhere is worth more
+   than two recipes, one of which the reader has to pick correctly.</p><p>It is the same set the Linux matrix uses in
+   <code class="frag">tests/build_parser_linux.sh</code>, not a shortened version of it.</p></div>
 
     <h2 id="delphi">Delphi: into a project you already have</h2>
     <p>Two ways. The first puts the components in the palette and is what most
@@ -518,41 +524,41 @@ fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.dpr
     <ol class="steps">
       <li>
         <h4>Build the two runtime packages first</h4>
-        <p><code>packages/delphi/crosspascal_parser.dpk</code>, then
-      <code>crosspascal_parserjit.dpk</code>. Open each and use
+        <p><code class="frag">packages/delphi/crosspascal_parser.dpk</code>, then
+      <code class="frag">crosspascal_parserjit.dpk</code>. Open each and use
       <b>Project, Build</b>. The design-time package requires both, and the IDE
       does not build them for you: installing without them stops at
-      <code>E2202 Required package 'crosspascal_parser' not found</code>.</p>
+      <code class="frag">E2202 Required package 'crosspascal_parser' not found</code>.</p>
       </li>
       <li>
         <h4>Open the design-time package</h4>
-        <p><code>packages/delphi/crosspascal_parser_dsgn.dpk</code>. It contains the
+        <p><code class="frag">packages/delphi/crosspascal_parser_dsgn.dpk</code>. It contains the
       registration unit and nothing else.</p>
       </li>
       <li>
         <h4>Press Install</h4>
         <p>A palette page named <b>CrossPascal</b> appears with the parser, the
-      calculator, the value list, and the threads. Drop <code>TMathParser</code>
+      calculator, the value list, and the threads. Drop <code class="frag">TMathParser</code>
       on a form and it works from the Object Inspector.</p>
       </li>
       <li>
         <h4>Add the library path once</h4>
-        <p>Tools, Options, Library, Library path - add <code>src</code> and
-      <code>jit</code>. Without it the IDE finds the components but the compiler
+        <p>Tools, Options, Library, Library path - add <code class="frag">src</code> and
+      <code class="frag">jit</code>. Without it the IDE finds the components but the compiler
       does not find the units.</p>
       </li>
     </ol>
 
     <h3>Without the palette</h3>
-    <p>Project, Options, Delphi Compiler, Search path: add <code>src</code>, and
-      <code>jit</code> if you want the accelerator. Then create the parser in
+    <p>Project, Options, Delphi Compiler, Search path: add <code class="frag">src</code>, and
+      <code class="frag">jit</code> if you want the accelerator. Then create the parser in
       code as the samples do. Nothing is installed into the IDE, which is the
       point when the project is built on a machine you do not control.</p>
 
     <div class="gotcha"><span class="k">The handle type, once</span><p>Registering your own function needs a handle variable, and its type must be
-   <code>TFunctionHandle</code> from <code>ParseTypes</code> - not the plain
-   <code>NativeInt</code>. On Delphi 12 and later the library defines its own
-   <code>NativeInt</code>, the <code>var</code> parameter refuses the system one,
+   <code class="frag">TFunctionHandle</code> from <code class="frag">ParseTypes</code> - not the plain
+   <code class="frag">NativeInt</code>. On Delphi 12 and later the library defines its own
+   <code class="frag">NativeInt</code>, the <code class="frag">var</code> parameter refuses the system one,
    and the compiler says only that no overload matches.</p></div>
 
     <h2 id="lazarus">Lazarus: the same, with packages</h2>
@@ -560,11 +566,11 @@ fpc -MDelphi -Fu/lib/pascal-mathparser/src hero.dpr
       <li>
         <h4>Open the package</h4>
         <p>Package, Open package file, then
-      <code>packages/lazarus/crosspascal_parser.lpk</code>. Compile it.</p>
+      <code class="frag">packages/lazarus/crosspascal_parser.lpk</code>. Compile it.</p>
       </li>
       <li>
         <h4>Add the accelerator if you want it</h4>
-        <p><code>crosspascal_parserjit.lpk</code>, same way. It depends on the first
+        <p><code class="frag">crosspascal_parserjit.lpk</code>, same way. It depends on the first
       package, so open them in that order.</p>
       </li>
       <li>
@@ -589,12 +595,12 @@ fpc -MDelphi -O2 -dNOFORMS -dNOGRAPHICS \
     <p>The two defines switch off the parts that would otherwise pull in a
       widgetset: forms and graphics. A console program uses neither.</p>
 
-    <p class="undercode">Compiling this way writes a <code>.ppu</code> and an
-      <code>.o</code> next to every library source it touches. That is how FPC
-      works when the units come from <code>-Fu</code> paths, and it is harmless
+    <p class="undercode">Compiling this way writes a <code class="frag">.ppu</code> and an
+      <code class="frag">.o</code> next to every library source it touches. That is how FPC
+      works when the units come from <code class="frag">-Fu</code> paths, and it is harmless
       on its own - but Lazarus refuses to build a package whose source folder
       holds compiled units, so delete them before you open
-      <code>crosspascal_parser.lpk</code>, or keep the console build in a copy
+      <code class="frag">crosspascal_parser.lpk</code>, or keep the console build in a copy
       of the repository.</p>
 
     <div class="tw"><table>
@@ -618,7 +624,7 @@ pwsh -File build-lazarus.ps1
 pwsh -File install.ps1</pre>
     <p>This is the build that ships. It wants the parser and the plotting engine
       cloned beside the plugin, because the project file names them by relative
-      path, and it wants <code>WEBVIEW4DELPHI</code> pointing at a checkout of
+      path, and it wants <code class="frag">WEBVIEW4DELPHI</code> pointing at a checkout of
       that library - the script registers its Lazarus package itself.</p>
 
     <h3>Delphi</h3>
@@ -642,19 +648,19 @@ pwsh -File install.ps1 -Delphi</pre>
     <ol class="steps">
       <li>
         <h4>Take three files</h4>
-        <p><code>parsewasm.wasm</code> - the engine; <code>wasmhost.js</code> - the
+        <p><code class="frag">parsewasm.wasm</code> - the engine; <code class="frag">wasmhost.js</code> - the
       bridge; and the page that talks to it. They sit next to each other and are
       loaded as static files. No server code is involved.</p>
       </li>
       <li>
         <h4>Serve them over http</h4>
-        <p>WebAssembly is fetched, so <code>file://</code> will not do. Any static
+        <p>WebAssembly is fetched, so <code class="frag">file://</code> will not do. Any static
       server works:</p>
       <pre class="sh">python -m http.server 8080</pre>
       </li>
       <li>
         <h4>Or rebuild the engine yourself</h4>
-        <p>Needs the FPC cross compiler for <code>wasm32-wasip1</code>, built from
+        <p>Needs the FPC cross compiler for <code class="frag">wasm32-wasip1</code>, built from
       the FPC sources. The two commands run in different folders, so each says
       where it starts:</p>
       <pre class="sh"><span class="cm"># in a checkout of the FPC sources</span>
@@ -676,14 +682,14 @@ pwsh -File engine/build_wasm.ps1</pre>
       <li>
         <h4>Add the paths</h4>
         <p>The plotting engine lives beside the parser. Add its folder to the search
-      path along with <code>src</code>; on Lazarus open
-      <code>crosspascal_graph.lpk</code> instead.</p>
+      path along with <code class="frag">src</code>; on Lazarus open
+      <code class="frag">crosspascal_graph.lpk</code> instead.</p>
       </li>
       <li>
         <h4>Drop the component on a form</h4>
         <p>With the design-time package installed it is on the <b>CrossPascal</b>
       palette page. Without it, create the component in code - it is an ordinary
-      <code>TCustomControl</code> descendant.</p>
+      <code class="frag">TCustomControl</code> descendant.</p>
       </li>
       <li>
         <h4>Give it formulas</h4>

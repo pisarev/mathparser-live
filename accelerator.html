@@ -445,7 +445,7 @@ pre.sh .cm{ color:var(--ink-soft) }
       <div><p class="sub">The parser compiles a formula to byte-code once and interprets it after that.
    The accelerator goes one step further: it turns the byte-code into x86-64
    machine code and calls it directly. The API does not change - you construct
-   <code>TJitParser</code> instead of <code>TMathParser</code> and carry on.</p>
+   <code class="frag">TJitParser</code> instead of <code class="frag">TMathParser</code> and carry on.</p>
         <p class="sub">The rule it never breaks: anything it cannot compile falls to the stage below
    it - the intermediate one, and the interpreter behind that. That fall back is
    not a setting: there is no way to switch it off, because <b>fast but wrong</b>
@@ -456,27 +456,27 @@ pre.sh .cm{ color:var(--ink-soft) }
     <div class="tw"><table>
       <thead><tr><th>Kind</th><th>Covered</th></tr></thead>
       <tbody>
-      <tr><td>Arithmetic</td><td><code>+ - &times; &divide;</code>, signs, nested brackets, constants</td></tr>
+      <tr><td>Arithmetic</td><td><code class="frag">+ - &times; &divide;</code>, signs, nested brackets, constants</td></tr>
       <tr><td>Comparison</td><td>all six, with the epsilon the parser is configured with</td></tr>
-      <tr><td>Branching</td><td><code>if</code>, <code>while</code>, <code>repeat</code> - lazily, as the interpreter does</td></tr>
-      <tr><td>Variables</td><td>both kinds: bound by typed reference, and boxed in a <code>TValue</code></td></tr>
-      <tr><td>Scope</td><td><code>get</code> and <code>set</code> on script variables</td></tr>
-      <tr><td>Calls</td><td><code>sin cos tan sqrt sqr ln exp abs arctan</code></td></tr>
+      <tr><td>Branching</td><td><code class="frag">if</code>, <code class="frag">while</code>, <code class="frag">repeat</code> - lazily, as the interpreter does</td></tr>
+      <tr><td>Variables</td><td>both kinds: bound by typed reference, and boxed in a <code class="frag">TValue</code></td></tr>
+      <tr><td>Scope</td><td><code class="frag">get</code> and <code class="frag">set</code> on script variables</td></tr>
+      <tr><td>Calls</td><td><code class="frag">sin cos tan sqrt sqr ln exp abs arctan</code></td></tr>
       </tbody>
     </table></div>
 
     <h2>What it declines</h2>
     <p>Each of these hands the formula down a stage, whole: to the intermediate
       one, and to the interpreter if that declines it too. The reason
-      is available as <code>CodeReason</code> if you want to know why a particular
+      is available as <code class="frag">CodeReason</code> if you want to know why a particular
       formula did not compile.</p>
 
     <div class="tw"><table>
       <thead><tr><th>Declines</th><th>Because</th></tr></thead>
       <tbody>
       <tr><td>A call it has no machine version of</td><td>anything outside the nine above</td></tr>
-      <tr><td>A function with parameters</td><td><code>mean</code>, <code>poly</code> and the rest of the variadic set</td></tr>
-      <tr><td>A string constant</td><td>the code generator works in <code>Double</code> only</td></tr>
+      <tr><td>A function with parameters</td><td><code class="frag">mean</code>, <code class="frag">poly</code> and the rest of the variadic set</td></tr>
+      <tr><td>A string constant</td><td>the code generator works in <code class="frag">Double</code> only</td></tr>
       <tr><td>An integer beyond exact range</td><td>above 2<sup>53</sup> a Double stops counting by ones</td></tr>
       <tr><td>A variable it cannot type</td><td>a type with no machine representation</td></tr>
       <tr><td>A frame deeper than 4 KB</td><td>a formula with hundreds of live intermediates</td></tr>
@@ -490,7 +490,7 @@ pre.sh .cm{ color:var(--ink-soft) }
       that is already parsed - the interpreter walking the script against machine
       code running it; the loop row is one iteration inside a script that loops ten
       thousand times; the bulk rows are one input out of an array handed over in a
-      single call, against the same inputs fed one <code>AsDouble</code> at a
+      single call, against the same inputs fed one <code class="frag">AsDouble</code> at a
       time.</p>
     <p>Measured on Delphi 13, Windows, x86-64. The number of runs each row was
       averaged over is in the table, because it is not the same for all of them.
@@ -519,8 +519,8 @@ pre.sh .cm{ color:var(--ink-soft) }
       and the compiler declined none of them. When it does decline something it
       says why in one word, and the stage below answers instead.</p>
 
-    <div class="gotcha"><span class="k">One number will differ, and here is why</span><p>The interpreter keeps intermediate values in <code>Extended</code>; the
-   accelerator works in <code>Double</code>. On a build where <code>Extended</code>
+    <div class="gotcha"><span class="k">One number will differ, and here is why</span><p>The interpreter keeps intermediate values in <code class="frag">Extended</code>; the
+   accelerator works in <code class="frag">Double</code>. On a build where <code class="frag">Extended</code>
    is wider than 64 bits - 32-bit Delphi, and FPC on Linux - the last bit of a
    long chain can differ between the two.</p><p>The fuzzer compares within an epsilon, so it passes; a bit-exact comparison
    would not. If your work needs the two engines to agree bit for bit, stay on the
@@ -531,7 +531,7 @@ pre.sh .cm{ color:var(--ink-soft) }
       <thead><tr><th>Requirement</th><th>Detail</th></tr></thead>
       <tbody>
       <tr><td>Processor</td><td>x86-64 only - there is no ARM or 32-bit code generator</td></tr>
-      <tr><td>Operating system</td><td>Windows and Linux; memory is taken with <code>VirtualAlloc</code> or <code>mmap</code> as appropriate</td></tr>
+      <tr><td>Operating system</td><td>Windows and Linux; memory is taken with <code class="frag">VirtualAlloc</code> or <code class="frag">mmap</code> as appropriate</td></tr>
       <tr><td>Memory protection</td><td>the page is writable while the code is emitted, then read and execute - never both at once, so W^X is respected</td></tr>
       <tr><td>Fallback</td><td>on any other target the machine-code stage is skipped and the intermediate one answers, with the interpreter behind it - nothing breaks</td></tr>
       </tbody>
