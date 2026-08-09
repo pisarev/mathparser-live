@@ -454,16 +454,16 @@ pre.sh .cm{ color:var(--ink-soft) }
     <p>Four of these have caught every person who has used the library, including
       its author. They are listed first for that reason.</p>
 
-    <div class="gotcha"><span class="k">Power is ** - not ^</span><p><code class="frag">^</code> is <b>exclusive or</b>, not exponentiation. <code class="frag">x ^ 2</code>
-   quietly returns <code class="frag">x xor 2</code>, which is a perfectly good number and
-   almost never the one you meant.</p><p>Write <code class="frag">x ** 2</code>, or spell it <code class="frag">x degree 2</code>.</p></div>
+    <div class="gotcha"><span class="k">Power is ** - not ^</span><p><code class="frag">^</code> is <b>exclusive or</b>, not exponentiation. <code class="formula-context" data-cases="x=5 =&gt; 7">x ^ 2</code>
+   quietly returns <code class="formula-context" data-cases="x=5 =&gt; 7">x xor 2</code>, which is a perfectly good number and
+   almost never the one you meant.</p><p>Write <code class="formula-context" data-cases="x=5 =&gt; 25">x ** 2</code>, or spell it <code class="formula-context" data-cases="x=5 =&gt; 25">x degree 2</code>.</p></div>
 
-    <div class="gotcha"><span class="k">Two slashes are a root, not a comment</span><p><code class="frag">//</code> takes a root: <code class="frag">8 // 3</code> is 2. There are no comments
+    <div class="gotcha"><span class="k">Two slashes are a root, not a comment</span><p><code class="frag">//</code> takes a root: <code class="formula" data-expect="2">8 // 3</code> is 2. There are no comments
    inside a formula, so nothing is being ignored.</p></div>
 
     <div class="gotcha"><span class="k">Comparison answers minus one</span><p>A true comparison returns <code class="frag">-1</code>, false returns <code class="frag">0</code> -
    the Pascal convention for a boolean stored as a number. So
-   <code class="frag">(3 &gt; 2) + 1</code> is <code class="frag">0</code>, not <code class="frag">2</code>.</p><p>Use <code class="frag">AsBoolean</code> if you want a Pascal <code class="frag">Boolean</code> back.</p></div>
+   <code class="formula" data-expect="0">(3 &gt; 2) + 1</code> is 0, not <code class="frag">2</code>.</p><p>Use <code class="frag">AsBoolean</code> if you want a Pascal <code class="frag">Boolean</code> back.</p></div>
 
     <div class="gotcha"><span class="k">Case never separates two names</span><p><code class="frag">Sin</code>, <code class="frag">sin</code> and <code class="frag">SIN</code> are one built-in, and a
    variable registered as <code class="frag">Rate</code> also answers to <code class="frag">rate</code> and
@@ -473,15 +473,15 @@ pre.sh .cm{ color:var(--ink-soft) }
 
     <h2>Operators</h2>
     <p>Higher binds tighter. The two that matter: power and root bind tighter than
-      multiplication, so <code class="frag">2 * 3 ** 2</code> is 18, and comparison binds
-      loosest, so <code class="frag">a + b &gt; c</code> compares the sum.</p>
+      multiplication, so <code class="formula" data-expect="18">2 * 3 ** 2</code> is 18, and comparison binds
+      loosest, so <code class="formula-context" data-cases="a=1,b=2,c=2 =&gt; -1">a + b &gt; c</code> compares the sum.</p>
 
     <div class="tw"><table>
       <thead><tr><th>Operator</th><th>Means</th><th>Binds</th></tr></thead>
       <tbody>
       <tr><td><code class="frag">+ - * /</code></td><td>the usual four</td><td><span class="m">normal</span></td></tr>
-      <tr><td><code class="frag">**</code></td><td>power - <code class="frag">2 ** 10</code> is 1024</td><td><span class="m">higher</span></td></tr>
-      <tr><td><code class="frag">//</code></td><td>root - <code class="frag">8 // 3</code> is 2</td><td><span class="m">higher</span></td></tr>
+      <tr><td><code class="frag">**</code></td><td>power - <code class="formula" data-expect="1024">2 ** 10</code> is 1024</td><td><span class="m">higher</span></td></tr>
+      <tr><td><code class="frag">//</code></td><td>root - <code class="formula" data-expect="2">8 // 3</code> is 2</td><td><span class="m">higher</span></td></tr>
       <tr><td><code class="frag">degree</code></td><td>power again, spelled out</td><td><span class="m">higher</span></td></tr>
       <tr><td><code class="frag">div  mod</code></td><td>integer quotient and remainder</td><td><span class="m">normal</span></td></tr>
       <tr><td><code class="frag">!</code></td><td>logical not, written before the value</td><td><span class="m">lower</span></td></tr>
@@ -501,18 +501,17 @@ pre.sh .cm{ color:var(--ink-soft) }
     <div class="tw"><table>
       <thead><tr><th>Call</th><th>Formula</th><th>Answer</th></tr></thead>
       <tbody>
-      <tr><td><code class="frag">AsInteger</code></td><td><code class="formula">2 ** 10</code></td><td><code class="frag">1024</code></td></tr>
-      <tr><td><code class="frag">AsDouble</code></td><td><code class="formula">pi / 6</code></td><td><code class="frag">0.5235988</code></td></tr>
-      <tr><td><code class="frag">AsExtended</code></td><td><code class="formula">sqrt(2)</code></td><td><code class="frag">1.4142136</code></td></tr>
-      <tr><td><code class="frag">AsBoolean</code></td><td><code class="formula">3 &gt; 2</code></td><td><code class="frag">True</code></td></tr>
-      <tr><td><code class="frag">AsString</code></td><td><code class="formula">2 + 2</code></td><td><code class="frag">'4'</code></td></tr>
-      <tr><td><code class="frag">AsDateTime</code></td><td><code class="formula">encodedate(2026, 7, 24)</code></td><td><code class="frag">2026-07-24</code></td></tr>
+      <tr><td><code class="frag">AsInteger</code></td><td><code class="formula" data-call="AsInteger" data-expect="1024">2 ** 10</code></td><td><code class="frag">1024</code></td></tr>
+      <tr><td><code class="frag">AsDouble</code></td><td><code class="formula" data-call="AsDouble" data-expect="0.5235988">pi / 6</code></td><td><code class="frag">0.5235988</code></td></tr>
+      <tr><td><code class="frag">AsExtended</code></td><td><code class="formula" data-call="AsExtended" data-expect="1.4142136">sqrt(2)</code></td><td><code class="frag">1.4142136</code></td></tr>
+      <tr><td><code class="frag">AsBoolean</code></td><td><code class="formula" data-call="AsBoolean" data-expect="True">3 &gt; 2</code></td><td><code class="frag">True</code></td></tr>
+      <tr><td><code class="frag">AsString</code></td><td><code class="formula" data-call="AsString" data-expect="'4'">2 + 2</code></td><td><code class="frag">'4'</code></td></tr>
       </tbody>
     </table></div>
 
     <h2>Control inside a formula</h2>
     <p>A formula is not limited to arithmetic. <code class="frag">if</code> is lazy - only the
-      branch that is taken gets evaluated, so <code class="frag">if(x &lt;&gt; 0, 1 / x, 0)</code> is
+      branch that is taken gets evaluated, so <code class="formula-context" data-cases="x=2 =&gt; 0.5; x=0 =&gt; 0">if(x &lt;&gt; 0, 1 / x, 0)</code> is
       safe. Loops carry their own counter, and <code class="frag">exit</code> ends the whole
       script with a value.</p>
 

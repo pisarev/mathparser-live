@@ -169,13 +169,40 @@ function extremaCount(ys) {
   from the editor.
 */
 function acceptState(m) {
-  HOST.state = {
-    cs: m.cs, formulas: m.formulas, options: m.options,
-    cleared: !!m.cleared, sheets: m.sheets
-  };
+  /*
+    The state is taken whole, with no list of fields. Listing fields by hand is
+    the very mechanism that already lost cleared and sheets: a sixth field will
+    appear in state() and be forgotten here. Exactly one thing is dropped - the
+    reason the message was sent.
+  */
+  const { cmd, ...next } = m;
+
+  /*
+    Commit ONLY after success.
+
+    The previous order wrote the session before the rebuild. A formula error does
+    not matter here: it is absorbed into firstError and never leaves. But
+    HOST.engine.sample sits outside any try, and the wasm imports include
+    proc_exit, which throws. An engine abort would have put a state that never
+    built into the session - and the page would bring it back on every open. This
+    class of defect has already been through this project once, with the empty
+    sheet.
+
+    HOST.opt is rolled back too: doBuild assigns it BEFORE sampling, and without
+    the rollback the commit would be half done - old state, old session, new
+    settings.
+  */
+  const wasOpt = HOST.opt;
+  try {
+    doBuild(m);
+  } catch (e) {
+    HOST.opt = wasOpt;
+    throw e;
+  }
+
+  HOST.state = next;
   try { localStorage.setItem(STATE_KEY, JSON.stringify(HOST.state)); }
   catch (e) { /* no storage - the session will not survive a reload, on we go */ }
-  doBuild(m);
 }
 
 function doBuild(m) {
@@ -952,7 +979,19 @@ function handle(m) {
       build() by hand, which is not the path a person takes.
     */
     case "options":
-      acceptState(m);
+      /*
+        A build that fell over must take the page out of "computing...". Proven
+        with an injected engine failure: without this branch the exception went
+        to the console, the status bar stayed in "computing..." forever, and the
+        person waited for an end that was never coming. State has already been
+        rolled back inside acceptState by this point, so the next build on the
+        same engine goes through normally - proven with the same failure.
+      */
+      try { acceptState(m); }
+      catch (e) {
+        reply({ type: "curves", list: [], points: 0, ms: 0,
+                error: "build failed: " + (e && e.message || e) });
+      }
       break;
     case "trace": doTrace(m); break;
     case "report": doReport(); break;

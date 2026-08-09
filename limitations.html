@@ -454,12 +454,12 @@ pre.sh .cm{ color:var(--ink-soft) }
     <div class="gotcha"><span class="k">The last bit depends on how you build</span><p><code class="frag">Extended</code> is 10 bytes on 32-bit Delphi and on FPC for Linux, and 8
    bytes - the same as <code class="frag">Double</code> - on 64-bit Windows. The parser keeps
    intermediates in <code class="frag">Extended</code>, so a long chain can end on a different
-   last bit depending on the target.</p><p>Concretely: <code class="frag">0.1 + 0.2</code> ends in <code class="frag">...3333</code> on the first pair
+   last bit depending on the target.</p><p>Concretely: <code class="formula">0.1 + 0.2</code> ends in <code class="frag">...3333</code> on the first pair
    and <code class="frag">...3334</code> on the second. Both are correct roundings of different
    intermediate precision. If you need one answer everywhere, round explicitly at
    the end.</p></div>
 
-    <div class="gotcha"><span class="k">Fractional powers under FPC on 64-bit Windows</span><p><code class="frag">2 ** 0.5</code> should equal <code class="frag">sqrt(2)</code> to the last bit. Under
+    <div class="gotcha"><span class="k">Fractional powers under FPC on 64-bit Windows</span><p><code class="formula">2 ** 0.5</code> should equal <code class="formula">sqrt(2)</code> to the last bit. Under
    Delphi and under FPC on Linux it does. Under FPC on 64-bit Windows it misses by
    337 units in the last place, because <code class="frag">Power</code> there computes
    <code class="frag">exp(y &times; ln x)</code> without the extra precision the other targets have.</p><p>Use <code class="frag">sqrt</code> for square roots and <code class="frag">intpower</code> for whole
@@ -478,7 +478,7 @@ pre.sh .cm{ color:var(--ink-soft) }
     <div class="tw"><table>
       <thead><tr><th>Does not</th><th>Consequence</th></tr></thead>
       <tbody>
-      <tr><td>Run anywhere but x86-64</td><td>on ARM or 32-bit the IR executor answers instead - faster than the interpreter, not the interpreter itself; the measured figure is in <code class="frag">jit/README.md</code></td></tr>
+      <tr><td>Run anywhere but x86-64</td><td>on ARM or 32-bit targets the machine-code stage is skipped; the portable IR is tried next, with the ordinary interpreter as the final fallback. The measured IR figures are in <code class="frag">jit/README.md</code></td></tr>
       <tr><td>Compile functions that take parameters</td><td><code class="frag">mean</code>, <code class="frag">poly</code> and friends fall back</td></tr>
       <tr><td>Key its cache by shape</td><td>two formulas differing only in a constant compile twice</td></tr>
       </tbody>

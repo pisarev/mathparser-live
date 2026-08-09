@@ -57,6 +57,23 @@ function pascal(name, part) {
     if (open < 0 || close < 0) throw new Error(name + ': no show markers');
     code = raw.slice(open + '{ show }'.length, close);
   }
+  /*
+    The copyright frame does not go into the example.
+
+    The monorepo sources carry no frame; published sources must have one, and the
+    release puts it there. Because of that, a page rebuilt IN THE REPOSITORY by
+    this very generator opened the example with six lines of frame, while the
+    published page opened with the program itself. A reader who rebuilt the site
+    as the README says got something other than what the site shows, and nobody
+    was checking that.
+  */
+  const bar = (l) => /^\s*\{\s*\*{10,}\s*\}\s*$/.test(l);
+  const lines = code.split('\n');
+  if (lines.length && bar(lines[0].replace(/^\ufeff/, ''))) {
+    const end = lines.findIndex((l, i) => i > 0 && bar(l));
+    if (end > 0) code = lines.slice(end + 1).join('\n');
+  }
+
   // The service markers of a sample ({ expect: ... }, { needs: ... }, the show
   // markers) are for the build matrix, not the reader: they do not go onto the
   // page.
@@ -90,15 +107,65 @@ const CSS = fs.readFileSync('_css.txt', 'utf8')
 
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-// A formula the reader will type into the parser. Marked apart from every other
-// <code class="frag">, because <code class="frag"> here holds everything mixed together: operator signs,
-// method names, dates, fragments of syntax. Telling a formula from those by
+// A formula the reader will type into the parser. Marked apart from everything
+// else set in monospace, because that holds everything mixed together: operator
+// signs, method names, dates, fragments of syntax. Telling a formula from those by
 // guesswork is impossible - the classifier would itself become the new weak
 // spot. A release check pulls out what is marked and runs it through the real
 // parser, so a published example cannot be something the parser refuses. That is
 // exactly what happened to parse('2 + 3'): single quotes are not something the
 // parser takes, and the page printed them.
-const fx = s => `<code class="formula">${esc(s)}</code>`;
+/*
+  The expected value is optional, and the two forms claim different things:
+    fx('sqrt(2)')        - only proves the parser accepts it;
+    fx('8 // 3', '2')    - proves that AND that the result equals 2.
+  Use the second wherever the page prints a concrete answer next to the formula.
+  The probe reads data-expect and compares it with what the parser returned, to
+  the precision the answer is printed with: the page promises "0.5235988", so
+  the check goes to the seventh decimal and no further.
+*/
+const fx = (s, expect) => expect === undefined
+  ? `<code class="formula">${esc(s)}</code>`
+  : `<code class="formula" data-expect="${esc(expect)}">${esc(s)}</code>`;
+
+/*
+  A formula and its published answer from ONE source.
+
+  Writing the expected value twice - once in the visible text, once in the
+  metadata - opens the next hole: the validator knows 2 while the author changes
+  the visible answer to 3, and nobody notices. So there is one argument and two
+  outputs.
+*/
+const fxIs = (s, expect) => `${fx(s, expect)} is ${esc(expect)}`;
+
+/*
+  The same, but the answer sits inside a sentence rather than right after the
+  formula. The % sign marks where it goes.
+
+    fxSays('1 + 2 = 3', '-1', ' compares the sum and answers %')
+
+  The spacing and punctuation belong to the phrase, not to the helper. The first
+  version added a space of its own and quietly ate the comma in a sentence that
+  used to read "..., and the value flips to 1".
+*/
+const fxSays = (s, expect, phrase) =>
+  `${fx(s, expect)}${phrase.split('%').join(esc(expect))}`;
+
+/*
+  A formula whose answer is published as the result of a SPECIFIC call.
+
+  The values table promises more than a number: it promises that this very call
+  returns it. While the markup carried a bare data-expect, the probe checked
+  everything through AsDouble, and three rows of the table were held by nobody:
+  AsBoolean promises "True", which as a number is -1; AsString promises "'4'".
+  Turning True into False would have passed.
+
+  The call name travels in the markup next to the answer, and the probe calls
+  exactly that. This is also how it came out that the parser has no AsDateTime
+  at all - the row named a method that does not exist.
+*/
+const fxCall = (s, call, answer) =>
+  `<code class="formula" data-call="${esc(call)}" data-expect="${esc(answer)}">${esc(s)}</code>`;
 
 /*
   A piece of syntax: a name, an operator, a path, a call. Not a formula - nothing
@@ -113,15 +180,77 @@ const fx = s => `<code class="formula">${esc(s)}</code>`;
 const frag = s => `<code class="frag">${esc(s)}</code>`;
 
 /*
+  A formula that needs a context. The cases are a list of "bindings => expected":
+    fxc('x ** 2', ['x=5 => 25'])
+    fxc('if(x <> 0, 1 / x, 0)', ['x=2 => 0.5', 'x=0 => 0'])
+  The formula probe reads them and runs EVERY one. An empty list is forbidden by
+  the contract - a tag with no cases is not accepted by the gate.
+*/
+const fxc = (s, cases) =>
+  `<code class="formula-context" data-cases="${esc(cases.join('; '))}">${esc(s)}</code>`;
+
+/*
   The gate inside the build itself. It catches earlier than the release does, and
   it catches the person editing the generator rather than the one reading a report
   afterwards.
 */
+/*
+  There are exactly three forms of the opening tag, and what is checked is the
+  EQUALITY OF COUNTS, not the presence of an attribute. The first attempt looked
+  for class= at all - and a typo went straight through: <code class="frga">
+  satisfied the gate, while the formula probe did not see it either, because that
+  is not formula. The hole "the author forgot to mark" closed and the hole "the
+  author mistyped" opened.
+
+  The comparison is deliberately dumb. Parsing attributes would have let through
+  <code class="formula" class="frga"> and any future stray attribute as well. If a
+  fourth class is ever needed, that is a deliberate change of the contract here,
+  not a quiet widening of the markup.
+*/
+const CODE_FORMS = [
+  '<code class="formula">',
+  '<code class="frag">',
+];
+
+/*
+  The fourth allowed form is a formula WITH an expected value. It is not a fourth
+  type: its fate is the same as a plain formula, only a machine expectation is
+  added. An empty data-expect is forbidden - an empty promise is worse than none.
+*/
+const EXPECT_FORM = /<code class="formula" data-expect="[^"]+">/g;
+
+/*
+  The third form carries mandatory cases. A class alone is not enough for a
+  formula that needs a context: without a binding the parser does not take x ** 2
+  at all ("Unknown element: x"), and the probe would honestly reject it. So the
+  cases travel WITH the claim, right there in the markup, and a tag without them
+  is invalid.
+
+  One case would prove computability but not the published claim. if(x <> 0, 1/x,
+  0) claims laziness: x=2 gives 0.5, and x=0 gives 0 and NOT an exception. The
+  first case without the second proves nothing about laziness.
+*/
+const CONTEXT_FORM = /<code class="formula-context" data-cases="[^"]+">/g;
+
+/*
+  The fifth form carries the CALL NAME along with the answer. The type is still
+  formula; what is added is which call produced the published answer, because
+  the values table promises the result of AsBoolean or AsString, not a number in
+  general.
+*/
+const CALL_FORM = /<code class="formula" data-call="[^"]+" data-expect="[^"]+">/g;
+
 function typed(html, where) {
-  const loose = (html.match(/<code(?![^>]*\bclass=)/g) || []).length;
-  if (loose) {
+  const all = (html.match(/<code\b/g) || []).length;
+  let good = (html.match(CONTEXT_FORM) || []).length
+           + (html.match(EXPECT_FORM) || []).length
+           + (html.match(CALL_FORM) || []).length;
+  for (const form of CODE_FORMS) good += html.split(form).length - 1;
+  if (all !== good) {
     throw new Error(
-      `${where}: ${loose} code span(s) with no type. A formula is fx(), everything else is frag()`);
+      `${where}: ${all} code spans, of them ${good} match the contract. ` +
+      `Allowed exactly: ${CODE_FORMS.join(' ')} ` +
+      '<code class="formula-context" data-cases="x=5 => 7">');
   }
   return html;
 }
@@ -501,7 +630,7 @@ const indexBody = `  <section class="hero">
       <div class="actions">
         <a class="btn solid" href="demo/">Try it live</a>
         <a class="btn hollow" href="#start">Quick start</a>
-        <a class="btn hollow" href="#">Source on GitHub</a>
+        <a class="btn hollow" href="https://github.com/pisarev/pascal-mathparser">Source on GitHub</a>
       </div>
     </div>
     <figure class="plate" style="margin:0">
@@ -580,13 +709,14 @@ const indexBody = `  <section class="hero">
     </div>
     <p class="said">Operators here are registered functions whose precedence is a
       <b>value, not grammar</b>. Flip one and the same characters parse into a different
-      tree: raise <b>*</b> above <b>/</b> and <code class="frag">12 / 3 * 2</code> turns from 8 into 2
+      tree: raise <b>*</b> above <b>/</b> and ${fx('12 / 3 * 2')} turns from 8 into 2
      - the bracketed line is the parser's own decompiler reporting the tree it
       actually built. <b>Coverage</b> is the second knob: how far a raised or lowered
       priority reaches. Comparison ships as <i>lower&nbsp;+&nbsp;total</i>, which is why
-      <code class="frag">1 + 2 = 3</code> compares the sum and answers -1, the parser's
+      ${fxSays('1 + 2 = 3', '-1', ' compares the sum and answers %')}, the parser's
       <i>true</i>. Switch <code class="frag">=</code> to <i>local</i> and it binds neighbours only:
-      the same line now evaluates as <code class="frag">1 + (2 = 3)</code>, and the value flips to 1.
+      the same line now evaluates as
+      ${fxSays('1 + (2 = 3)', '1', ', and the value flips to %.')}
       The engine is the real parser, compiled to WebAssembly. Plus and minus have no
       knobs at all - they are how a script joins its items, not functions.
       Reload the page to reset.</p>
@@ -608,7 +738,7 @@ const indexBody = `  <section class="hero">
           undefined stretches skipped, and the captions are the formulas exactly as
           they were parsed.</p>
         <p>The component adds what a plot actually needs: curves sampled across threads,
-          adaptive density, intersections and extrema found rather than guessed, polar
+          adaptive density, intersections, and extrema found rather than guessed, polar
           and cartesian on the same canvas.</p>
       </div>
     </div>
@@ -889,4 +1019,4 @@ fs.writeFileSync('index.html', shell({
 }));
 
 console.log('index.html        ', (fs.statSync('index.html').size / 1024).toFixed(0), 'KB');
-module.exports = { shell, docHead, table, gotcha, m, esc, fx, frag, typed, plate, PEN, byKey, pascal};
+module.exports = { shell, docHead, table, gotcha, m, esc, fx, fxc, fxIs, fxSays, fxCall, frag, typed, plate, PEN, byKey, pascal};

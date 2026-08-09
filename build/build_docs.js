@@ -10,14 +10,14 @@
 */
 const fs = require('fs');
 const path = require('path');
-const { shell, docHead, table, gotcha, m, esc, fx, frag, pascal } = require('./build.js');
+const { shell, docHead, table, gotcha, m, esc, fx, fxc, fxIs, fxCall, frag, pascal } = require('./build.js');
 
 /* ═══ syntax ════════════════════════════════════════════════════════════ */
 
 const OPS = [
   ['<code class="frag">+ - * /</code>', 'the usual four', 'normal'],
-  ['<code class="frag">**</code>', 'power - <code class="frag">2 ** 10</code> is 1024', 'higher'],
-  ['<code class="frag">//</code>', 'root - <code class="frag">8 // 3</code> is 2', 'higher'],
+  ['<code class="frag">**</code>', 'power - ' + fxIs('2 ** 10', '1024'), 'higher'],
+  ['<code class="frag">//</code>', 'root - ' + fxIs('8 // 3', '2'), 'higher'],
   ['<code class="frag">degree</code>', 'power again, spelled out', 'higher'],
   ['<code class="frag">div  mod</code>', 'integer quotient and remainder', 'normal'],
   ['<code class="frag">!</code>', 'logical not, written before the value', 'lower'],
@@ -52,21 +52,21 @@ const syntaxBody = docHead('Syntax', [
       its author. They are listed first for that reason.</p>
 
 ${gotcha('Power is ** - not ^', [
-  `<code class="frag">^</code> is <b>exclusive or</b>, not exponentiation. <code class="frag">x ^ 2</code>
-   quietly returns <code class="frag">x xor 2</code>, which is a perfectly good number and
+  `<code class="frag">^</code> is <b>exclusive or</b>, not exponentiation. ${fxc('x ^ 2', ['x=5 => 7'])}
+   quietly returns ${fxc('x xor 2', ['x=5 => 7'])}, which is a perfectly good number and
    almost never the one you meant.`,
-  `Write <code class="frag">x ** 2</code>, or spell it <code class="frag">x degree 2</code>.`
+  `Write ${fxc('x ** 2', ['x=5 => 25'])}, or spell it ${fxc('x degree 2', ['x=5 => 25'])}.`
 ])}
 
 ${gotcha('Two slashes are a root, not a comment', [
-  `<code class="frag">//</code> takes a root: <code class="frag">8 // 3</code> is 2. There are no comments
+  `<code class="frag">//</code> takes a root: ${fxIs('8 // 3', '2')}. There are no comments
    inside a formula, so nothing is being ignored.`
 ])}
 
 ${gotcha('Comparison answers minus one', [
   `A true comparison returns <code class="frag">-1</code>, false returns <code class="frag">0</code> -
    the Pascal convention for a boolean stored as a number. So
-   <code class="frag">(3 &gt; 2) + 1</code> is <code class="frag">0</code>, not <code class="frag">2</code>.`,
+   ${fxIs('(3 > 2) + 1', '0')}, not ${frag('2')}.`,
   `Use <code class="frag">AsBoolean</code> if you want a Pascal <code class="frag">Boolean</code> back.`
 ])}
 
@@ -80,33 +80,43 @@ ${gotcha('Case never separates two names', [
 
     <h2>Operators</h2>
     <p>Higher binds tighter. The two that matter: power and root bind tighter than
-      multiplication, so <code class="frag">2 * 3 ** 2</code> is 18, and comparison binds
-      loosest, so <code class="frag">a + b &gt; c</code> compares the sum.</p>
+      multiplication, so ${fxIs('2 * 3 ** 2', '18')}, and comparison binds
+      loosest, so ${fxc('a + b > c', ['a=1,b=2,c=2 => -1'])} compares the sum.</p>
 
 ${table(['Operator', 'Means', 'Binds'], OPS.map(o => [o[0], o[1], `<span class="m">${o[2]}</span>`]))}
 
     <h2>Values</h2>
-    <p>A formula can hold integers of every width, single, double and extended
-      floats, booleans, strings, dates and pointers. You never declare any of it -
+    <p>A formula can hold integers of every width, single, double, and extended
+      floats, booleans, strings, dates, and pointers. You never declare any of it -
       ask for the type you want and the conversion happens on the way out.</p>
 
 ${/*
-    The middle column is fx(), not frag(): these are runnable formulas, and the
-    probe has to evaluate them. While they sat in unmarked code spans the formula
-    gate did not see them at all - that case is exactly why there are two helpers.
+    The values table is executable documentation, all of it.
+
+    A row has ONE answer: it prints in the cell and the same string goes into
+    data-expect, so there is no independent place to edit. There were two fields
+    at first, shown and expect, holding the same number twice - two spellings of
+    one number drift apart sooner or later, and they drift silently.
+
+    The call name travels into the markup as well, because the page promises more
+    than a number: it promises that this very call returns it. While the probe
+    checked everything through AsDouble, three rows were held by nobody -
+    AsBoolean promises True, which as a number is -1. That is also how it came
+    out that the parser has no AsDateTime in any unit: the row named a method
+    that does not exist. It is gone from here, and dates stay in the prose above,
+    where encodedate still lives.
   */''}
 ${table(['Call', 'Formula', 'Answer'], [
-  [frag('AsInteger'), fx('2 ** 10'), frag('1024')],
-  [frag('AsDouble'), fx('pi / 6'), frag('0.5235988')],
-  [frag('AsExtended'), fx('sqrt(2)'), frag('1.4142136')],
-  [frag('AsBoolean'), fx('3 > 2'), frag('True')],
-  [frag('AsString'), fx('2 + 2'), frag("'4'")],
-  [frag('AsDateTime'), fx('encodedate(2026, 7, 24)'), frag('2026-07-24')],
-])}
+  { call: 'AsInteger', expr: '2 ** 10', answer: '1024' },
+  { call: 'AsDouble', expr: 'pi / 6', answer: '0.5235988' },
+  { call: 'AsExtended', expr: 'sqrt(2)', answer: '1.4142136' },
+  { call: 'AsBoolean', expr: '3 > 2', answer: 'True' },
+  { call: 'AsString', expr: '2 + 2', answer: "'4'" },
+].map(r => [frag(r.call), fxCall(r.expr, r.call, r.answer), frag(r.answer)]))}
 
     <h2>Control inside a formula</h2>
     <p>A formula is not limited to arithmetic. <code class="frag">if</code> is lazy - only the
-      branch that is taken gets evaluated, so <code class="frag">if(x &lt;&gt; 0, 1 / x, 0)</code> is
+      branch that is taken gets evaluated, so ${fxc('if(x <> 0, 1 / x, 0)', ['x=2 => 0.5', 'x=0 => 0'])} is
       safe. Loops carry their own counter, and <code class="frag">exit</code> ends the whole
       script with a value.</p>
 
@@ -290,14 +300,14 @@ ${gotcha('The last bit depends on how you build', [
    bytes - the same as <code class="frag">Double</code> - on 64-bit Windows. The parser keeps
    intermediates in <code class="frag">Extended</code>, so a long chain can end on a different
    last bit depending on the target.`,
-  `Concretely: <code class="frag">0.1 + 0.2</code> ends in <code class="frag">...3333</code> on the first pair
+  `Concretely: ${fx('0.1 + 0.2')} ends in <code class="frag">...3333</code> on the first pair
    and <code class="frag">...3334</code> on the second. Both are correct roundings of different
    intermediate precision. If you need one answer everywhere, round explicitly at
    the end.`
 ])}
 
 ${gotcha('Fractional powers under FPC on 64-bit Windows', [
-  `<code class="frag">2 ** 0.5</code> should equal <code class="frag">sqrt(2)</code> to the last bit. Under
+  `${fx('2 ** 0.5')} should equal ${fx('sqrt(2)')} to the last bit. Under
    Delphi and under FPC on Linux it does. Under FPC on 64-bit Windows it misses by
    337 units in the last place, because <code class="frag">Power</code> there computes
    <code class="frag">exp(y &times; ln x)</code> without the extra precision the other targets have.`,
@@ -319,7 +329,14 @@ ${table(['Does not', 'Consequence'], [
   // The figure is not repeated here: it was measured once and lives in
   // jit/README.md. A second, different range used to stand here and disagreed
   // with the measured one.
-  ['Run anywhere but x86-64', 'on ARM or 32-bit the IR executor answers instead - faster than the interpreter, not the interpreter itself; the measured figure is in <code class="frag">jit/README.md</code>'],
+  // A description of the architecture carries no numbers and promises no speed.
+  //
+  // First there was a second, different range here, and it disagreed with the
+  // measured one. Then the number went and the word "faster" stayed, which was
+  // worse: a measurement over a checked set turned into a property of ANY script.
+  // And the sentence contradicted the three-stage contract - a missing emitter
+  // does not mean the interpreter stops answering; it stays the last line.
+  ['Run anywhere but x86-64', 'on ARM or 32-bit targets the machine-code stage is skipped; the portable IR is tried next, with the ordinary interpreter as the final fallback. The measured IR figures are in ' + frag('jit/README.md')],
   ['Compile functions that take parameters', '<code class="frag">mean</code>, <code class="frag">poly</code> and friends fall back'],
   ['Key its cache by shape', 'two formulas differing only in a constant compile twice'],
 ])}
@@ -341,7 +358,7 @@ ${table(['Does not', 'Consequence'], [
       <code class="frag">TJitScript</code> does not modify it, so one script may run on several
       threads at once - but only as far as everything it reaches allows that: the
       variables it reads have to be safe to read concurrently, and so does every
-      function it calls. Both are yours, not the library&#39;s.</p>
+      function it calls. Both are yours, not the library's.</p>
     <p>The addresses are baked in when the script is built: the redirect chain is
       resolved once, at compile time. So a thread that needs its own variables
       needs its own script, with its own category, compiled separately -

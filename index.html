@@ -545,13 +545,14 @@ P := TJitParser.Create(<span class="kw">nil</span>);
     </div>
     <p class="said">Operators here are registered functions whose precedence is a
       <b>value, not grammar</b>. Flip one and the same characters parse into a different
-      tree: raise <b>*</b> above <b>/</b> and <code class="frag">12 / 3 * 2</code> turns from 8 into 2
+      tree: raise <b>*</b> above <b>/</b> and <code class="formula">12 / 3 * 2</code> turns from 8 into 2
      - the bracketed line is the parser's own decompiler reporting the tree it
       actually built. <b>Coverage</b> is the second knob: how far a raised or lowered
       priority reaches. Comparison ships as <i>lower&nbsp;+&nbsp;total</i>, which is why
-      <code class="frag">1 + 2 = 3</code> compares the sum and answers -1, the parser's
+      <code class="formula" data-expect="-1">1 + 2 = 3</code> compares the sum and answers -1, the parser's
       <i>true</i>. Switch <code class="frag">=</code> to <i>local</i> and it binds neighbours only:
-      the same line now evaluates as <code class="frag">1 + (2 = 3)</code>, and the value flips to 1.
+      the same line now evaluates as
+      <code class="formula" data-expect="1">1 + (2 = 3)</code>, and the value flips to 1.
       The engine is the real parser, compiled to WebAssembly. Plus and minus have no
       knobs at all - they are how a script joins its items, not functions.
       Reload the page to reset.</p>

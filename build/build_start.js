@@ -75,14 +75,11 @@ ${steps([
      'cd samples/docs',
      '',
      '# Delphi',
-     'dcc64 -U C:\\lib\\pascal-mathparser\\src hero.dpr',
-     'hero.exe',
+     'dcc64 -U"..\\..\\src" -NS"System;System.Win;WinApi" hero.dpr',
+     './hero',
      '',
      '# Free Pascal, any platform',
-     'fpc -MDelphi -dNOFORMS -dNOGRAPHICS \\',
-     '    -Fu/lib/pascal-mathparser/src/compat \\',
-     '    -Fu/lib/pascal-mathparser/src \\',
-     '    -Fi/lib/pascal-mathparser/src hero.dpr',
+     'fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu"../../src/compat" -Fu"../../src" -Fi"../../src" hero.dpr',
      './hero',
    ])],
 ])}
@@ -122,7 +119,7 @@ ${steps([
       registration unit and nothing else.</p>`],
   ['Press Install',
    `<p>A palette page named <b>CrossPascal</b> appears with the parser, the
-      calculator, the value list and the threads. Drop <code class="frag">TMathParser</code>
+      calculator, the value list, and the threads. Drop <code class="frag">TMathParser</code>
       on a form and it works from the Object Inspector.</p>`],
   ['Add the library path once',
    `<p>Tools, Options, Library, Library path - add <code class="frag">src</code> and
@@ -174,6 +171,14 @@ ${shellBlock([
     <p>The two defines switch off the parts that would otherwise pull in a
       widgetset: forms and graphics. A console program uses neither.</p>
 
+    <p class="undercode">Compiling this way writes a <code class="frag">.ppu</code> and an
+      <code class="frag">.o</code> next to every library source it touches. That is how FPC
+      works when the units come from <code class="frag">-Fu</code> paths, and it is harmless
+      on its own - but Lazarus refuses to build a package whose source folder
+      holds compiled units, so delete them before you open
+      <code class="frag">crosspascal_parser.lpk</code>, or keep the console build in a copy
+      of the repository.</p>
+
 ${table(['What you get', 'Where'], [
   ['The interpreter', 'everywhere, including 32-bit and wasm'],
   ['The IR executor', 'everywhere the JIT layer is compiled in'],
@@ -206,11 +211,11 @@ ${shellBlock([
   'pwsh -File install.ps1 -Delphi',
 ])}
     <p>The same sources through the other compiler; the switch is what tells the
-      installer which of the two to take. It picks up the parser, the accelerator
-      and the plotting engine from their folders, and no packages need to be
-      installed for it. Both scripts build x64 and only x64: that is what this
-      plugin supports. Notepad++ itself also ships 32-bit and ARM64 builds, and
-      neither of them will load this one.</p>
+      installer which of the two to take. It picks up the parser, the
+      accelerator, and the plotting engine from their folders, and no packages
+      need to be installed for it. Both scripts build x64 and only x64: that is
+      what this plugin supports. Notepad++ itself also ships 32-bit and ARM64
+      builds, and neither of them will load this one.</p>
 
     <h2 id="web">Embedding the web version</h2>
     <p>The demo on this site is not a video and not a screenshot: it is the real

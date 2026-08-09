@@ -490,14 +490,11 @@ pre.sh .cm{ color:var(--ink-soft) }
 cd samples/docs
 
 <span class="cm"># Delphi</span>
-dcc64 -U C:\lib\pascal-mathparser\src hero.dpr
-hero.exe
+dcc64 -U"..\..\src" -NS"System;System.Win;WinApi" hero.dpr
+./hero
 
 <span class="cm"># Free Pascal, any platform</span>
-fpc -MDelphi -dNOFORMS -dNOGRAPHICS \
-    -Fu/lib/pascal-mathparser/src/compat \
-    -Fu/lib/pascal-mathparser/src \
-    -Fi/lib/pascal-mathparser/src hero.dpr
+fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu"../../src/compat" -Fu"../../src" -Fi"../../src" hero.dpr
 ./hero</pre>
       </li>
     </ol>
