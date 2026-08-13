@@ -234,6 +234,89 @@ let cleanup = () => {};
     point belongs on the ray of the parameter itself, the comparison is modulo two
     pi, and a mirrored line lands half a turn away and fails.
   */
+  /*
+    The last position of the cursor has to be computed.
+
+    The trace request is throttled, and the throttle used to have no trailing
+    call: a move that fell inside the window was dropped in silence, and the
+    place where the mouse came to rest was never asked for at all. The dashed
+    line and the points froze where the cursor had been a moment earlier and
+    stayed there.
+
+    Two moves in a row on purpose: the first takes the window, the second falls
+    inside it, and it is the second one that used to be lost. The hover helper
+    is no good here because it repeats the move until an answer arrives, which
+    walks around the very thing being checked.
+
+    The comparison is against the cursor, not against the dashed line. The
+    neighbouring checks compare the point with the line, and those two come from
+    one answer and agree even when that answer is stale.
+  */
+  async function traceCatchesUp(label, fx, fy) {
+    run(`
+      (() => {
+        data.trace = null;
+        const r = canvas.getBoundingClientRect();
+        const at = (u, v) => new MouseEvent('mousemove', {
+          clientX: r.left + r.width * u, clientY: r.top + r.height * v, bubbles: true });
+        canvas.dispatchEvent(at(${fx}, ${fy}));
+        canvas.dispatchEvent(at(${fx + 0.05}, ${fy - 0.04}));
+      })();
+    `);
+    await wait(600);
+    const res = run(`
+      (() => {
+        if (!data.trace) return { ok: false, why: 'no answer came at all' };
+        if (!cursor) return { ok: false, why: 'the page kept no cursor' };
+        const gx = fromX(cursor.x, canvas.clientWidth), gy = fromY(cursor.y, canvas.clientHeight);
+        let want = Math.atan2(gy, gx);
+        if (want < 0) want += 2 * Math.PI;
+        let apart = Math.abs(want - data.trace.param) % (2 * Math.PI);
+        if (apart > Math.PI) apart = 2 * Math.PI - apart;
+        return { ok: apart < 1e-9, apart, want, got: data.trace.param };
+      })();
+    `);
+    check(label, !!res.ok, res.why || ("cursor at " + res.want.toFixed(5) +
+      ", trace at " + res.got.toFixed(5) + ", apart by " + res.apart.toFixed(5)));
+  }
+
+  /*
+    The number in the panel and the point drawn have to describe the same place.
+
+    In polar the panel shows a radius, and an angle beside it. That pair defines
+    a point, and it has to be the point that is drawn. The panel used to print
+    the LENGTH, losing the sign: for a formula whose radius goes negative the
+    point moves to the opposite ray while the number stayed positive, so the
+    pair described a different point.
+
+    The room allowed is half of the last printed digit: the number is rounded,
+    and asking more of it would be asking for the impossible.
+  */
+  async function panelMatchesPoint(label, fx, fy) {
+    if (!await hover(fx, fy)) { check(label, false, "the page sent no trace points"); return; }
+    const res = run(`
+      (() => {
+        const t = data.trace.param, seen = [];
+        for (const p of data.trace.points) {
+          const span = document.getElementById('pfv' + p.i);
+          if (!span) continue;
+          const shown = parseFloat(span.textContent);
+          if (!isFinite(shown)) continue;
+          seen.push({ i: p.i, shown,
+            off: Math.hypot(shown * Math.cos(t) - p.x, shown * Math.sin(t) - p.y) });
+        }
+        if (!seen.length) return { ok: false, why: 'the panel shows no number for a traced curve' };
+        const worst = seen.reduce((a, b) => a.off > b.off ? a : b);
+        const room = 0.5 * Math.pow(10, -opt.decimals) + 1e-9;
+        return { ok: worst.off <= room, worst, room };
+      })();
+    `);
+    check(label, !!res.ok, res.why || ("curve " + res.worst.i + " shows " +
+      res.worst.shown + ", and that number puts the point " +
+      res.worst.off.toFixed(6) + " away from where it is drawn, room " +
+      res.room.toFixed(6)));
+  }
+
   async function polarRay(label, fx, fy) {
     if (!await hover(fx, fy)) { check(label, false, "the page sent no trace points"); return; }
     const res = run(`
@@ -307,6 +390,29 @@ let cleanup = () => {};
   await polarLine("line along the ray, upper left", 0.32, 0.30);
   await polarLine("line along the ray, lower left", 0.32, 0.72);
   await polarLine("line along the ray, lower right", 0.66, 0.72);
+
+  /*
+    A radius that does go negative. Cos(3 * X) runs from -1 to 1, so some of the
+    points land on the opposite ray, and the number in the panel has to be
+    negative or it describes a different point.
+  */
+  heading("Polar, the panel number and the point agree");
+  await setup("polar", ["Cos(3 * X)"], 4);
+  await panelMatchesPoint("panel and point agree, upper right", 0.66, 0.30);
+  await panelMatchesPoint("panel and point agree, upper left", 0.32, 0.30);
+  await panelMatchesPoint("panel and point agree, lower left", 0.32, 0.72);
+  await panelMatchesPoint("panel and point agree, lower right", 0.66, 0.72);
+
+  /*
+    And the last position of the cursor: the trace has to catch up with it
+    rather than stay where the mouse was a moment ago.
+  */
+  heading("Polar, the trace catches up with the cursor");
+  await setup("polar", ["2 + Cos(3 * X)"], 4);
+  await traceCatchesUp("the last move is computed, upper right", 0.62, 0.32);
+  await traceCatchesUp("the last move is computed, upper left", 0.34, 0.32);
+  await traceCatchesUp("the last move is computed, lower left", 0.34, 0.70);
+  await traceCatchesUp("the last move is computed, lower right", 0.62, 0.70);
 
   /*
     The example path - the page opened with no host at all.
