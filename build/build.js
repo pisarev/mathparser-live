@@ -453,9 +453,6 @@ const METHODS = [
 */
 const RELEASES = [
   {
-    // The v1.1.0 tag does not exist yet: remove this line in the same pass that puts the
-    // tag in place.
-    pending: true,
     tag: 'v1.1.0', date: '10 August 2026', title: 'Thirty-two bits, a package that asks for nothing, and a defect the accelerator hid',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.0',
     added: [
