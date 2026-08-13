@@ -183,8 +183,38 @@ let cleanup = () => {};
         curves.push({ text: f, on: true, trace: true, color: null }));
       [...document.getElementById('cs').children]
         .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cs === ${JSON.stringify(cs)})));
+      opt.keepRatio = true; syncControls();
       view.cx = 0; view.cy = 0; view.w = ${width};
       view.h = ${width} * (canvas.clientHeight / canvas.clientWidth);
+      opt.trace = true;
+      drawPanel(); build();
+    `);
+    await wait(700);
+  }
+
+  /*
+    A view whose axes have DIFFERENT scales.
+
+    The ordinary setup fits the view height to the aspect of the canvas, so a
+    pixel across equals a pixel down. Every polar check lived only in that case,
+    and so none of them saw the defect that shows up exactly when the scales
+    differ: the ray was built in screen pixels straight from the angle while the
+    points were built in the model, and the two ran apart. The user saw it, the
+    self test did not.
+
+    The stretch is noticeable but not grotesque: the user had a 5% mismatch, this
+    is 25%, so that the miss is larger than any tolerance in any window.
+  */
+  async function setupStretched(cs, formulas, width, stretch) {
+    run(`
+      curves.length = 0;
+      ${JSON.stringify(formulas)}.forEach(f =>
+        curves.push({ text: f, on: true, trace: true, color: null }));
+      [...document.getElementById('cs').children]
+        .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cs === ${JSON.stringify(cs)})));
+      opt.keepRatio = false; syncControls();
+      view.cx = 0; view.cy = 0; view.w = ${width};
+      view.h = ${width} * (canvas.clientHeight / canvas.clientWidth) * ${stretch};
       opt.trace = true;
       drawPanel(); build();
     `);
@@ -350,10 +380,19 @@ let cleanup = () => {};
     if (!await hover(fx, fy)) { check(label, false, "the page sent no trace points"); return; }
     const res = run(`
       (() => {
-        const r = canvas.getBoundingClientRect();
-        const g = traceGeometry(r.width, r.height);
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        const g = traceGeometry(w, h);
         if (!g) return { ok: false, why: 'no line geometry' };
-        const drawn = -Math.atan2(g.y2 - g.y1, g.x2 - g.x1);
+        /*
+          The direction is taken IN THE MODEL: the ends of the dashed line are
+          mapped back through fromX/fromY. It used to be measured in pixels, and
+          the check carried the same wrong assumption as the code itself - that a
+          pixel across is a pixel down. On a view whose axes have different
+          scales it went green on a drawing that was wrong.
+        */
+        const ax = fromX(g.x1, w), ay = fromY(g.y1, h);
+        const bx = fromX(g.x2, w), by = fromY(g.y2, h);
+        const drawn = Math.atan2(by - ay, bx - ax);
         let diff = Math.abs(drawn - data.trace.param) % Math.PI;
         if (diff > Math.PI / 2) diff = Math.PI - diff;
         return { ok: diff < 1e-9, diff, drawn, param: data.trace.param };
@@ -415,6 +454,20 @@ let cleanup = () => {};
   await traceCatchesUp("the last move is computed, lower right", 0.62, 0.70);
 
   /*
+    And the case that was never there: the axes do not share a scale. This is
+    where the line and the points ran apart, and none of the earlier polar checks
+    could see it, because their view was always given a square aspect.
+  */
+  heading("Polar on a stretched view: the line and the points still agree");
+  await setupStretched("polar", ["2 + Cos(3 * X)"], 4, 1.25);
+  await traceOnLine("point on the line, upper right", 0.66, 0.30);
+  await traceOnLine("point on the line, upper left", 0.32, 0.30);
+  await traceOnLine("point on the line, lower left", 0.32, 0.72);
+  await traceOnLine("point on the line, lower right", 0.66, 0.72);
+  await polarLine("line along the ray, upper right", 0.66, 0.30);
+  await polarLine("line along the ray, lower left", 0.32, 0.72);
+
+  /*
     The example path - the page opened with no host at all.
 
     Everything above drives the page through the engine, and that hid a defect
@@ -441,13 +494,16 @@ let cleanup = () => {};
         data.trace = null;
         demo({ cmd: 'trace', param: ${param} });
         if (!data.trace) return { ok: false, why: 'the example answered nothing' };
-        const r = canvas.getBoundingClientRect();
-        const g = traceGeometry(r.width, r.height);
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        const g = traceGeometry(w, h);
         const p = data.trace.points[0];
+        // The slope is taken IN THE MODEL: in pixels it holds only on a square view.
+        const ma = g ? Math.atan2(fromY(g.y2, h) - fromY(g.y1, h),
+                                  fromX(g.x2, w) - fromX(g.x1, w)) : null;
         return {
           polar: data.trace.polar,
           vertical: g ? Math.abs(g.x2 - g.x1) < 1e-9 : null,
-          lineAngle: g ? Math.atan2(-(g.y2 - g.y1), g.x2 - g.x1) : null,
+          lineAngle: ma,
           px: p ? p.x : null, py: p ? p.y : null
         };
       })();
@@ -1216,11 +1272,11 @@ let cleanup = () => {};
       const shot = () => ({ w: view.w, h: view.h,
                             round: (canvas.clientHeight / (view.h * 2)) /
                                    (canvas.clientWidth / (view.w * 2)) });
-      opt.keepRatio = false;
+      opt.keepRatio = false; syncControls();
       enter('maxX', 8);
       enter('maxY', 8);
       const both = shot();
-      opt.keepRatio = true;
+      opt.keepRatio = true; syncControls();
       size();
       const back = shot();
       return { both, back };
