@@ -36,6 +36,26 @@ function check(name, pass, detail) {
     (pass ? "PASS" : "FAIL") + "</td><td class='dim'>" + (detail || "") + "</td>";
   document.getElementById("out").appendChild(tr);
 }
+/*
+  The third state: SKIPPED.
+
+  A check that measures TIME measures browser throttling rather than the product
+  when the tab is hidden: a measurement on 11.08.2026 gave 146376 ms in the
+  background against 1923 ms on an active tab, and the label turned out to be in the
+  wrong corner as well, the drawing had not finished by the time it was read. Both
+  checks went red on sound code, that is they accused the innocent.
+
+  Going green in silence in such a case is even less acceptable. So a third state is
+  introduced: the measurement is not valid. It is NOT green, rows.filter(!pass)
+  counts it on a par with a failure, but it tells the truth about the reason.
+*/
+function skipped(name, reason) {
+  rows.push({ name, pass: null });
+  const tr = document.createElement("tr");
+  tr.innerHTML = "<td>" + name + "</td><td class='bad'>SKIPPED</td>" +
+    "<td class='dim'>" + (reason || "") + "</td>";
+  document.getElementById("out").appendChild(tr);
+}
 function heading(text) {
   document.getElementById("out").insertAdjacentHTML("beforeend",
     "<tr><td colspan='3'><h2>" + text + "</h2></td></tr>");
@@ -43,20 +63,20 @@ function heading(text) {
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 /*
-  The holder for the cleanup is declared OUTSIDE, and that is not decoration.
+  The cleanup holder is declared OUTSIDE, and that is not decoration.
 
-  The first attempt hung the finally on restoreStorage itself - which is a const
-  inside the function below, and outside that name does not exist at all. A chain
-  evaluates its argument at once, so the page died with a ReferenceError before
+  The first attempt hung finally on restoreStorage itself, and that one is declared
+  const inside the function below, so outside there is no such name at all. A chain
+  computes its argument at once, so the page fell over with a ReferenceError before
   the first check: an edit made for the sake of unconditional cleanup killed the
-  whole set. Measured in a separate run.
+  whole set. Checked by a separate run.
 
-  Why not a try/finally around the body, which is what one would reach for: the
-  body is two thousand lines and holds fifty multi-line template literals that go
-  into an eval inside the frame. Shifting the indentation would change THE STRINGS
-  THEMSELVES, not merely the look of the code. So the cleanup goes through a
-  holder: the name outside always exists, it is given its value the moment the
-  function appears, and the call happens later.
+  Why not try/finally around the body, as it would seem to ask for: the body is two
+  thousand lines, and in them fifty multi-line template literals that go into eval
+  inside the frame. A shift of indentation would change THE STRINGS THEMSELVES, not
+  only the look of the code. So the cleanup goes through a holder: the name outside
+  always exists, it is given its value as soon as the function appears, and the call
+  is made later.
 */
 let cleanup = () => {};
 
@@ -81,27 +101,26 @@ let cleanup = () => {};
     so every run starts from the same place.
   */
   /*
-    The demo's browser storage is cleared on purpose - otherwise this set would
-    be measuring somebody else's state - but it is NOT OURS. What lies there is
-    the last session of the person using the page: formulas, the window,
-    bookmarks, the chosen theme. A run of the self test used to carry all of
-    that away without asking, and for good.
+    The browser storage of the demo is cleared deliberately, otherwise the set would
+    measure someone else's state, but it is NOT OURS. It holds the last session of the
+    user: formulas, the window, bookmarks, the chosen theme. A run of the self-test
+    carried all of that away without asking and for good.
 
-    So the contents are taken off whole and put back at the end. The restore is
-    in the failure path too: the set may fail in the middle of a run, but it may
-    not leave empty storage behind it.
-  */
+    So the contents are taken whole and put back at the end. The return stands in
+    finally: the set has the right to fall over in the middle of a run, but not the
+    right to leave empty storage behind it.
+*/
   const savedStorage = {};
+  // The holder outside is given its value at once, as soon as the function is ready:
+  // from that moment any outcome, an ordinary end, an early exit, an exception, will
+  // clean up after itself.
   const restoreStorage = () => {
     try {
       const ls = frame.contentWindow.localStorage;
       ls.clear();
       Object.keys(savedStorage).forEach(k => ls.setItem(k, savedStorage[k]));
-    } catch (e) { /* the frame is gone - there is nowhere to put it back */ }
+    } catch (e) { /* the frame is already closed, there is nowhere to put it back */ }
   };
-  // The holder outside is given its value as soon as the function is ready: from
-  // that moment every ending - a normal one, an early return, an exception -
-  // cleans up after itself.
   cleanup = restoreStorage;
   try {
     const ls = frame.contentWindow.localStorage;
@@ -109,7 +128,7 @@ let cleanup = () => {};
       const key = ls.key(i);
       savedStorage[key] = ls.getItem(key);
     }
-  } catch (e) { /* storage is out of reach - there is nothing to put back */ }
+  } catch (e) { /* the storage is unavailable, there is nothing to put back */ }
   frame.contentWindow.localStorage.clear();
   await load();
   const run = src => frame.contentWindow.eval(src);
@@ -905,19 +924,25 @@ let cleanup = () => {};
     a worker with a deadline and a hang is an ordinary failed check.
   */
   {
+    // Whether the tab is hidden is watched THROUGHOUT the measurement, not only at its
+    // start: the page can go into the background halfway through, and then the time is
+    // no longer about the product.
+    let hidden = document.hidden;
+    const watch = () => { if (document.hidden) hidden = true; };
+    document.addEventListener("visibilitychange", watch);
     const began = Date.now();
     await setup("rect", ["Sin(X)", "While(1 = 1, X)"], 10);
     const spent = Date.now() - began;
+    document.removeEventListener("visibilitychange", watch);
     const endless = run(`
       (() => {
         /*
-          data.seg is a list of curves, each with its own index and its own set
-          of polylines, and a polyline is a flat list of x, y. The first version
-          of this check counted a field that does not exist and got zero for
-          both curves: "the endless one drew nothing" and "the one beside it is
-          intact" were both answering about the same zero. One of them was green
-          for nothing, the other red for nothing.
-        */
+          data.seg holds the curves, each with its own number and its own set of polylines,
+          and a polyline is a flat list of x, y. The first version of this check read a
+          field that does not exist and got a zero for both curves: "the eternal one drew
+          nothing" and "the neighbour is intact" were both answering about the same zero.
+          One of them went green for nothing, the other went red for nothing.
+*/
         const seg = data.seg || [];
         const points = i => ((seg.find(c => c.i === i) || {}).seg || [])
                               .reduce((n, line) => n + line.length / 2, 0);
@@ -927,7 +952,12 @@ let cleanup = () => {};
     `);
     check("the page survives a formula that never ends", endless.alive,
       "spent " + spent + " ms");
-    check("it comes back quickly", spent < 12000, spent + " ms");
+    if (hidden) {
+      skipped("it comes back quickly",
+        "the tab was hidden, " + spent + " ms is browser throttling, not the engine");
+    } else {
+      check("it comes back quickly", spent < 12000, spent + " ms");
+    }
     check("the endless curve draws nothing", endless.bad === 0,
       "points " + endless.bad);
     check("the curve beside it is unaffected", endless.good > 0,
@@ -944,12 +974,12 @@ let cleanup = () => {};
   */
   await setup("rect", ["Sin(X)"], 10);
   /*
-    The corners are stepped through ONE AT A TIME, with a wait between them.
-    The whole sweep used to sit inside a single synchronous run(): picking a
-    corner starts a rebuild, the frame was grabbed at once, and the first corner
-    was captured in the state left by the previous check. The failure drifted and
-    depended on whatever ran before this section.
-  */
+    The positions are gone through ONE AT A TIME, with a wait between them. Earlier
+    the whole walk sat inside one synchronous run(): changing the position in the list
+    starts a rebuild, while the frame was taken straight away, and the first position
+    was taken in the state left over from the previous check. The error came out
+    floating and depended on what ran before this section.
+*/
   const corners = [];
   for (let i = 0; i < 4; i++) {
     corners.push(JSON.parse(run(`
@@ -958,11 +988,11 @@ let cleanup = () => {};
         list.selectedIndex = ${i};
         list.onchange();
         /*
-          The label is found by comparing two frames - one with it, one without -
-          rather than by colour. The plate takes its colour from the theme, so a
-          test for a white pixel would quietly find nothing on the dark theme and
-          go green where there was nothing to look at.
-        */
+          The label is looked for by comparing two frames, one with the label and one
+          without it, rather than by colour. The colour of the plate comes from the theme,
+          and a check for a white pixel would quietly find emptiness on a dark theme, going
+          green where there is nothing to look at.
+*/
         opt.signBlend = 255;
         opt.sign = false;
         paint();
@@ -990,9 +1020,9 @@ let cleanup = () => {};
     await wait(200);
   }
   /*
-    The list is in the same order as TLayoutType in the component: bottom left,
+    The order in the list is the same as in TLayoutType in the component: bottom left,
     bottom right, top left, top right.
-  */
+*/
   const quarter = [
     { right: false, top: false }, { right: true, top: false },
     { right: false, top: true }, { right: true, top: true }
@@ -1792,7 +1822,7 @@ let cleanup = () => {};
     themeFromUrl.got === themeFromUrl.want,
     "asked for " + themeFromUrl.want + ", got " + themeFromUrl.got);
 
-  // Put the page back the way it was found, for the checks that come after.
+  // Return the page to its original state for the checks that follow.
   await load();
 
 
@@ -1821,20 +1851,19 @@ let cleanup = () => {};
       const seen = {};
 
       /*
-        Turn the proportion lock off first. With it on, width and height are one
-        number and its consequence: whichever is typed last wins and the other
-        follows. Walking the fields in order set the width, then the height, and
-        the height put the width back - the check was catching its own
-        arithmetic rather than a forgotten setting.
-      */
+        Proportions are turned off first. With them on, width and height are one number
+        and its consequence: whichever is entered last wins and the other is computed.
+        Walking the fields in order set the width and then the height, and the height
+        brought the width back, so the check caught its own arithmetic rather than a
+        setting that had been forgotten.
+*/
       const lock = document.querySelector('.switch[data-opt="keepRatio"]');
       if (lock && lock.getAttribute('aria-pressed') === 'true') lock.onclick();
 
       document.querySelectorAll('.num[data-opt]').forEach(f => {
         const was = parseFloat(f.value.replace(',', '.'));
-        // Move it off the current value rather than picking a number out of
-        // the air: a zero width draws an empty canvas, and the check would be
-        // measuring emptiness.
+        // We shift from the current value rather than take a number out of thin air: a zero
+        // width draws an empty canvas, and the check would measure emptiness.
         const now = Number.isFinite(was) && was !== 0
           ? Math.round(was * 1.5 * 1000) / 1000 : 3;
         f.value = now;
@@ -1849,8 +1878,8 @@ let cleanup = () => {};
       const box = options();
       Object.keys(seen).forEach(k => {
         out.fields.push(k);
-        // Width and height live in the view and travel as halves - the field
-        // shows the full span. Compare the quantity, not the number.
+        // Width and height live in the view and travel as halves, while the field shows the
+        // full span. The comparison goes by the magnitude, not by the number.
         const want = seen[k];
         let got = box[k];
         if (k === 'maxX') got = view.w * 2;
@@ -1863,21 +1892,21 @@ let cleanup = () => {};
         if (!same) out.missing.push(k + ': set ' + want + ', saved ' + got);
       });
 
-      // Choices outside the panel: coordinate system, pen colour, formulas -
-      // the page puts all of them into the session state beside the settings.
+      // A choice outside the panel: the coordinate system, the pen colour, the formulas,
+      // all of it the page puts into the session state next to the settings.
       const snapshot = state();
-      if (!snapshot.cs) out.missing.push('cs: does not reach the state');
-      if (!('penColor' in snapshot.options)) out.missing.push('penColor: does not reach the state');
-      if (!Array.isArray(snapshot.formulas)) out.missing.push('formulas: do not reach the state');
+      if (!snapshot.cs) out.missing.push('cs: does not reach the snapshot');
+      if (!('penColor' in snapshot.options)) out.missing.push('penColor: does not reach the snapshot');
+      if (!Array.isArray(snapshot.formulas)) out.missing.push('formulas: do not reach the snapshot');
 
-      // The theme keeps a key of its own: the options object does not carry it.
+      // The theme lives under a key of its own: the settings object does not carry it.
       let stored = null;
       try {
         document.getElementById('themeBtn').click();
         stored = localStorage.getItem(THEME_KEY);
       } catch (e) {}
       if (stored !== (document.documentElement.dataset.theme || 'light'))
-        out.missing.push('theme: the choice was not written down (' + stored + ')');
+        out.missing.push('theme: the choice was not stored (' + stored + ')');
 
       return out;
     })();
@@ -2060,23 +2089,23 @@ let cleanup = () => {};
   */
   check("the run reached its end", false, e && e.stack
     ? String(e.stack).split(String.fromCharCode(10)).slice(0, 2).join(" ") : String(e));
-  { /* the set may fail; it may not carry somebody else's work away */ }
+  { /* the set has the right to fall over, it has no right to carry off somebody else's work */ }
   finish();
 }).finally(() => cleanup());
 /*
-  Putting somebody else's memory back hangs on the end of the chain instead of
-  being placed by hand along the paths.
+  Returning someone else's storage hangs on the end of the chain rather than being
+  placed by hand along the paths.
 
-  By hand there were two places: the normal end and the exception handler.
-  Between them lay an ordinary early exit - "the engine did not come up, return"
-  - which is not an exception, so the handler never saw it. The memory is
-  already cleared at that moment and there is nobody left to put it back: the
-  set walked away leaving an empty localStorage of that origin.
+  By hand there were two points: the normal end and the exception handler. Between
+  them lay an ordinary early exit, "the engine did not come up, return", and that is
+  not an exception, so the handler did not see it. The storage is already cleared by
+  that moment, and there is nobody to put it back: the set left, having given the
+  person an empty localStorage of the same origin.
 
-  A finally covers all three endings alike. Restoring twice is harmless: it
-  clears and puts the saved values back, so the normal path, which restores
-  earlier and reloads the page, loses nothing - and whatever the page wrote
-  after that reload is cleaned up instead.
+  Here finally covers all three outcomes alike. Restoring twice is harmless: it
+  clears and puts the saved contents back, so the normal path, which restores
+  earlier and reloads the page, loses nothing, while whatever the page managed to
+  write after the reload is removed instead.
 */
 
 function finish() {

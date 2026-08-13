@@ -1,27 +1,27 @@
 /*
-  Builds the showcase. The whole site is five pages: the showcase from here,
-  three reference pages from build_docs.js and the getting-started page from
+  Builds the showcase. The whole site is five pages: the showcase from here, three
+  reference pages from build_docs.js and the "where to start" page from
   build_start.js.
 
-  They share one stylesheet (_css.txt), so a change to the style changes the
+  They all share one style sheet (_css.txt), so an edit to the style changes the
   whole site at once. The curves on the showcase are static SVG paths built from
-  points the engine computed (data.js): the graphics are visible without a line
-  of script, and the script only brings them in.
+  points computed by the engine (data.js): the graphics are there without a single
+  line of script, the script only reveals them.
 
-  Run: node build.js
+  To run: node build.js
 */
 const fs = require('fs');
 const path = require('path');
-// The samples on the page are files the build matrix compiles and runs. The
-// code on the showcase used to live here and nowhere else, and for years it
-// contained variables that came from nowhere: no compiler ever saw that text.
-// Now there is one source.
+// The samples on the page are the files the matrix builds and runs.
+// The code of the showcase used to live only here, and for years it held variables
+// that come from nowhere: no compiler ever saw that text.
+// Now there is a single source.
 //
-// The folder is looked for rather than named: inside the monorepo it is
-// 0-foundation, in the published layout it is a clone of the parser repository
-// next to this one, where the same files sit in samples/docs. While the path
-// was a single monorepo one, the documented `node build.js` stopped on a fresh
-// clone at the very first read.
+// The directory is searched for rather than set: in the monorepo it is
+// 0-foundation, in the published layout it is a neighbouring clone of the parser
+// repository, where the same files sit in samples/docs. While the path was a single
+// monorepo one, the documented command node build.js fell over on a clean clone at
+// the very first read.
 const SAMPLES = [
   path.join(__dirname, '..', '..', 'pascal-mathparser', 'samples', 'docs'),
   path.join(__dirname, '..', '..', '0-foundation', 'samples', 'docs')
@@ -44,29 +44,28 @@ function highlight(code) {
   return t.replace(/\u0001(\d+)\u0001/g, (m, i) => holes[+i]);
 }
 
-// Without the second argument the whole program goes onto the page. With 'show'
-// it is the part between the { show } and { show done } markers: the same
-// program, only an excerpt, because the first screen is no place for thirty
-// lines.
+// Without a second argument the whole program goes to the page. With 'show' it is
+// the stretch between the markers { show } and { show done }: the same program,
+// only an extract, because the first screen is no place for thirty lines.
 function pascal(name, part) {
   const raw = fs.readFileSync(path.join(SAMPLES, name + '.dpr'), 'utf8').replace(/\r\n/g, '\n');
   let code = raw;
   if (part === 'show') {
     const open = raw.indexOf('{ show }');
     const close = raw.indexOf('{ show done }');
-    if (open < 0 || close < 0) throw new Error(name + ': no show markers');
+    if (open < 0 || close < 0) throw new Error(name + ': no display markers');
     code = raw.slice(open + '{ show }'.length, close);
   }
   /*
-    The copyright frame does not go into the example.
+    The copyright frame does not go to the start of a sample.
 
-    The monorepo sources carry no frame; published sources must have one, and the
-    release puts it there. Because of that, a page rebuilt IN THE REPOSITORY by
-    this very generator opened the example with six lines of frame, while the
-    published page opened with the program itself. A reader who rebuilt the site
-    as the README says got something other than what the site shows, and nobody
-    was checking that.
-  */
+    In the monorepo it is not there, while in the published sources it is required,
+    put in place by the release. Because of that a page built IN THE REPOSITORY by
+    the same generator showed a sample starting with six lines of the frame, while
+    the deployed page started with the program itself. A reader who rebuilt the site
+    by the README got something other than what the site shows, and nobody checked
+    that difference.
+*/
   const bar = (l) => /^\s*\{\s*\*{10,}\s*\}\s*$/.test(l);
   const lines = code.split('\n');
   if (lines.length && bar(lines[0].replace(/^\ufeff/, ''))) {
@@ -74,9 +73,8 @@ function pascal(name, part) {
     if (end > 0) code = lines.slice(end + 1).join('\n');
   }
 
-  // The service markers of a sample ({ expect: ... }, { needs: ... }, the show
-  // markers) are for the build matrix, not the reader: they do not go onto the
-  // page.
+  // The service labels of a sample ({ expect: ... }, { needs: ... }, the show
+  // markers) are for the matrix rather than the reader: they do not go to the page.
   code = code.split('\n')
     .filter((l) => !/\{\s*(expect:|needs:|show\b)/.test(l))
     .join('\n').replace(/\n{3,}/g, '\n\n').trim();
@@ -90,14 +88,14 @@ require('./data.js');
 const CURVES = window.CURVES;
 const byKey = k => CURVES.find(c => c.key === k);
 /*
-  The stylesheet goes onto the page without its comments.
+  The style sheet goes to the page without comments.
 
-  The comments in _css.txt explain layout decisions. A built page is a published
-  file, and there is no place in it for comments. They used to end up inside
-  <style> and go unnoticed: the detector looked at visible text rather than at
-  the markup.
+  The comments in _css.txt explain layout decisions and are written in Russian, as
+  everything here is. A built page is a published file, and it must hold neither
+  comments nor Russian text. They used to travel inside <style> and stay unnoticed:
+  the detector looked at visible text rather than at markup.
 
-  The source itself is untouched - the stripping happens only while building.
+  The source itself is not touched, the cutting happens only while building.
 */
 const CSS = fs.readFileSync('_css.txt', 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -107,105 +105,111 @@ const CSS = fs.readFileSync('_css.txt', 'utf8')
 
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-// A formula the reader will type into the parser. Marked apart from everything
-// else set in monospace, because that holds everything mixed together: operator
-// signs, method names, dates, fragments of syntax. Telling a formula from those by
-// guesswork is impossible - the classifier would itself become the new weak
-// spot. A release check pulls out what is marked and runs it through the real
-// parser, so a published example cannot be something the parser refuses. That is
-// exactly what happened to parse('2 + 3'): single quotes are not something the
-// parser takes, and the page printed them.
+// A formula the reader will type into the parser. It is marked apart from everything
+// else set in a monospaced font, because that place holds a mixture of everything:
+// operator signs, method names, dates, pieces of syntax. Telling a formula from
+// those by guesswork is impossible, and a classifier would itself become a new weak
+// spot. What is marked gets taken out by the release check and run through the real
+// parser, so a published sample cannot turn out to be something the parser rejects.
+// That is exactly what happened with parse('2 + 3'): the parser does not take single
+// quotes, and the page was printing them.
 /*
-  The expected value is optional, and the two forms claim different things:
-    fx('sqrt(2)')        - only proves the parser accepts it;
-    fx('8 // 3', '2')    - proves that AND that the result equals 2.
-  Use the second wherever the page prints a concrete answer next to the formula.
-  The probe reads data-expect and compares it with what the parser returned, to
-  the precision the answer is printed with: the page promises "0.5235988", so
-  the check goes to the seventh decimal and no further.
+  An expected value is optional, and these are different statements:
+    fx('sqrt(2)')        proves only that it runs;
+    fx('8 // 3', '2')    proves that it runs AND that the result matches.
+  The second is needed everywhere the page prints a particular answer next to it.
+  The probe reads data-expect and compares it with what the parser gave, to the
+  precision the answer is written with: the page promises "0.5235988", so the
+  comparison has to go to the seventh digit.
 */
 const fx = (s, expect) => expect === undefined
   ? `<code class="formula">${esc(s)}</code>`
   : `<code class="formula" data-expect="${esc(expect)}">${esc(s)}</code>`;
 
 /*
-  A formula and its published answer from ONE source.
+  A formula and its published answer come from ONE source.
 
-  Writing the expected value twice - once in the visible text, once in the
-  metadata - opens the next hole: the validator knows 2 while the author changes
-  the visible answer to 3, and nobody notices. So there is one argument and two
-  outputs.
+  The review named the next hole before I fell into it: if the expected value is
+  written twice, in the visible text and in the metadata, the validator will know 2
+  while the author changes the visible answer to 3, and nobody will notice. So there
+  is one argument and two outputs.
 */
 const fxIs = (s, expect) => `${fx(s, expect)} is ${esc(expect)}`;
 
 /*
-  The same, but the answer sits inside a sentence rather than right after the
-  formula. The % sign marks where it goes.
+  The same, but the answer stands inside a phrase rather than right after the
+  formula. The place for the answer is marked with %.
 
     fxSays('1 + 2 = 3', '-1', ' compares the sum and answers %')
 
-  The spacing and punctuation belong to the phrase, not to the helper. The first
-  version added a space of its own and quietly ate the comma in a sentence that
-  used to read "..., and the value flips to 1".
+  The form was needed because fxIs closed only those sentences where the answer
+  comes immediately after. In two places on the main page the answer was written
+  into prose, and there the number still lived twice: the review saw it during a
+  demonstration before it had a chance to diverge. The hole is the same one: what is
+  visible and what is checked have to share a source, wherever the visible part
+  stands.
+
+  The space and the punctuation belong to the phrase rather than to the helper: the
+  first attempt inserted a space itself and quietly ate the comma in a sentence that
+  had read "..., and the value flips to 1".
 */
 const fxSays = (s, expect, phrase) =>
   `${fx(s, expect)}${phrase.split('%').join(esc(expect))}`;
 
 /*
-  A formula whose answer is published as the result of a SPECIFIC call.
+  A formula whose answer is published as the result of a PARTICULAR call.
 
-  The values table promises more than a number: it promises that this very call
-  returns it. While the markup carried a bare data-expect, the probe checked
+  The table of values promises not merely a number but that AsInteger or AsBoolean
+  is what returns it. While the markup carried a bare data-expect, the probe checked
   everything through AsDouble, and three rows of the table were held by nobody:
-  AsBoolean promises "True", which as a number is -1; AsString promises "'4'".
-  Turning True into False would have passed.
+  AsBoolean promises "True", which as a number is -1; AsString promises "'4'";
+  AsDateTime promised a date. Replacing True with False would have passed green.
 
-  The call name travels in the markup next to the answer, and the probe calls
-  exactly that. This is also how it came out that the parser has no AsDateTime
-  at all - the row named a method that does not exist.
+  The name of the call travels in the markup next to the answer, and the probe calls
+  EXACTLY IT. That is also how it turned out that the parser has no AsDateTime at
+  all: a row of the table named a method that does not exist.
 */
 const fxCall = (s, call, answer) =>
   `<code class="formula" data-call="${esc(call)}" data-expect="${esc(answer)}">${esc(s)}</code>`;
 
 /*
-  A piece of syntax: a name, an operator, a path, a call. Not a formula - nothing
-  evaluates it.
+  A piece of syntax: a name, an operator, a path, a call. Not a formula, nobody
+  computes it.
 
-  There are two helpers, and not for decoration. The review of 09.08.2026 showed
-  that runnable formulas were hiding in unmarked code spans and slipping past the
-  formula gate in silence: coverage depended on whether the author remembered to
-  mark them. Marking is mandatory now, and an unmarked span fails the build - see
-  typed() below.
+  There are two helpers for a reason. The review of 09.08.2026 showed that runnable
+  formulas were hiding in an unnamed <code> and went past the formula latch in
+  silence: coverage depended on whether the author remembered to mark it. The mark
+  is now required, and an unnamed <code> brings the build down, see typed() below.
 */
 const frag = s => `<code class="frag">${esc(s)}</code>`;
 
 /*
-  A formula that needs a context. The cases are a list of "bindings => expected":
+  A formula that needs context. The cases are a list of "bindings => expected":
     fxc('x ** 2', ['x=5 => 25'])
     fxc('if(x <> 0, 1 / x, 0)', ['x=2 => 0.5', 'x=0 => 0'])
-  The formula probe reads them and runs EVERY one. An empty list is forbidden by
-  the contract - a tag with no cases is not accepted by the gate.
+  The formula probe reads them and runs EVERY one. An empty list is forbidden by the
+  contract: the latch will not accept a tag without cases.
 */
 const fxc = (s, cases) =>
   `<code class="formula-context" data-cases="${esc(cases.join('; '))}">${esc(s)}</code>`;
 
 /*
-  The gate inside the build itself. It catches earlier than the release does, and
-  it catches the person editing the generator rather than the one reading a report
-  afterwards.
+  A latch inside the build itself. It catches before the page reaches the release,
+  and it catches for whoever edits the generator rather than for whoever reads the
+  report afterwards.
 */
 /*
-  There are exactly three forms of the opening tag, and what is checked is the
-  EQUALITY OF COUNTS, not the presence of an attribute. The first attempt looked
-  for class= at all - and a typo went straight through: <code class="frga">
-  satisfied the gate, while the formula probe did not see it either, because that
-  is not formula. The hole "the author forgot to mark" closed and the hole "the
-  author mistyped" opened.
+  There are exactly three forms of the opening tag, and what is checked is THE
+  EQUALITY OF COUNTS, not the presence of an attribute. The first attempt looked for
+  class= at all, and a typo went straight through: <code class="frga"> suited the
+  latch while the formula probe did not see it, because that is not formula. The
+  hole "the author forgot to mark it" closed, the hole "the author made a typo"
+  opened.
 
-  The comparison is deliberately dumb. Parsing attributes would have let through
-  <code class="formula" class="frga"> and any future stray attribute as well. If a
-  fourth class is ever needed, that is a deliberate change of the contract here,
-  not a quiet widening of the markup.
+  The form of comparison is deliberately blunt. Parsing by attributes would let
+  through both <code class="formula" class="frga"> and any accidental attributes to
+  come. If a fourth class is ever needed, that will be a deliberate change of the
+  contract here rather than a quiet widening of the markup.
 */
 const CODE_FORMS = [
   '<code class="formula">',
@@ -214,29 +218,30 @@ const CODE_FORMS = [
 
 /*
   The fourth allowed form is a formula WITH an expected value. It is not a fourth
-  type: its fate is the same as a plain formula, only a machine expectation is
-  added. An empty data-expect is forbidden - an empty promise is worse than none.
+  TYPE: its fate is the same as that of formula, only a machine expectation has been
+  added. An empty data-expect is forbidden: an empty promise is worse than a missing
+  one.
 */
 const EXPECT_FORM = /<code class="formula" data-expect="[^"]+">/g;
 
 /*
-  The third form carries mandatory cases. A class alone is not enough for a
-  formula that needs a context: without a binding the parser does not take x ** 2
-  at all ("Unknown element: x"), and the probe would honestly reject it. So the
-  cases travel WITH the claim, right there in the markup, and a tag without them
-  is invalid.
+  The third form comes with required cases. For a formula that needs context one
+  class is not enough: x ** 2 without a binding is not taken by the parser at all
+  ("Unknown element: x"), and the probe will honestly reject it. So the cases travel
+  TOGETHER with the statement, right in the markup, and a tag without them is not
+  valid.
 
-  One case would prove computability but not the published claim. if(x <> 0, 1/x,
-  0) claims laziness: x=2 gives 0.5, and x=0 gives 0 and NOT an exception. The
-  first case without the second proves nothing about laziness.
+  One case would prove computability but not the published statement. if(x <> 0,
+  1/x, 0) is declared to be lazy: x=2 gives 0.5, while x=0 gives 0 and does NOT give
+  an exception. The first case without the second proves nothing about laziness.
 */
 const CONTEXT_FORM = /<code class="formula-context" data-cases="[^"]+">/g;
 
 /*
-  The fifth form carries the CALL NAME along with the answer. The type is still
-  formula; what is added is which call produced the published answer, because
-  the values table promises the result of AsBoolean or AsString, not a number in
-  general.
+  The fifth form is a formula with the NAME OF THE CALL and an answer. The type is
+  still formula; what has been added is which call produced the published answer,
+  because the table of values promises not a number in general but the result of
+  AsBoolean or AsString.
 */
 const CALL_FORM = /<code class="formula" data-call="[^"]+" data-expect="[^"]+">/g;
 
@@ -248,14 +253,14 @@ function typed(html, where) {
   for (const form of CODE_FORMS) good += html.split(form).length - 1;
   if (all !== good) {
     throw new Error(
-      `${where}: ${all} code spans, of them ${good} match the contract. ` +
+      `${where}: ${all} <code> tags in all, ${good} of them by the contract. ` +
       `Allowed exactly: ${CODE_FORMS.join(' ')} ` +
       '<code class="formula-context" data-cases="x=5 => 7">');
   }
   return html;
 }
 
-/* ─── the geometry of the curves ────────────────────────────────────────── */
+/* ─── curve geometry ────────────────────────────────────────────────────── */
 
 function toPath(curve, boxW, boxH, pad, maxPts, uniform) {
   const segs = curve.data.segs || [];
@@ -268,11 +273,11 @@ function toPath(curve, boxW, boxH, pad, maxPts, uniform) {
   if (minX > maxX) return { d: '', length: 0, points: 0 };
 
   /*
-    A polar curve is scaled equally on both axes: otherwise a circle turns into
-    an ellipse. A y=f(x) plot is scaled on each axis independently: its axes are
-    in different units anyway, and stretching it across the whole plate is not a
-    distortion but a choice of window.
-  */
+    A polar curve is scaled equally on both axes: otherwise a circle becomes an
+    ellipse. A y=f(x) graph is scaled independently on each axis: its axes are in
+    different units anyway, and stretching it across the whole plate is a choice of
+    window rather than a distortion.
+*/
   const innerW = boxW - 2 * pad, innerH = boxH - 2 * pad;
   const spanX = (maxX - minX) || 1, spanY = (maxY - minY) || 1;
   const [sx, sy] = uniform
@@ -376,7 +381,7 @@ ${opts.script || ''}
 </html>`, opts.title);
 }
 
-// The head of a reference page: the title on the left, the introduction on the right.
+// The header of a reference page: the title on the left, the introduction on the right.
 function docHead(title, paras) {
   return `  <section class="doc">
     <div class="doc-head">
@@ -441,14 +446,34 @@ const METHODS = [
 ];
 
 /*
-  The release log. A new release is added AT THE TOP as a single entry: the date,
-  the label and the added / fixed lists. An empty list is simply not printed. It
-  is kept here rather than in a separate file so that the entry is written in the
-  same place where the page is built.
+  The release log. A new release is added AT THE TOP as a single entry: date, tag
+  and the added / fixed lists. An empty list simply is not printed. It is kept here
+  rather than in a separate file so that the entry is made in the same place where
+  the page is built.
 */
 const RELEASES = [
   {
-    // The v1.0.9 tag is not there yet: drop this line in the same pass that tags.
+    // The v1.1.0 tag does not exist yet: remove this line in the same pass that puts the
+    // tag in place.
+    pending: true,
+    tag: 'v1.1.0', date: '10 August 2026', title: 'Thirty-two bits, a package that asks for nothing, and a defect the accelerator hid',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.0',
+    added: [
+      'Thirty-two bits, on both compilers. Windows i386 joins win64 and linux64, and the whole battery runs there: sixteen test programs on Free Pascal 3.2.2, the documentation samples, the packages themselves. It is a separate installation of the compiler rather than a switch, because Free Pascal will not target i386 from a host whose Extended is a Double - and on Win64 it is.',
+      'The Lazarus packages no longer ask for the LCL. They are built with NOFORMS and NOGRAPHICS, so a console program links against them with nothing else in its uses clause - no Interfaces, no widgetset. Delphi is untouched by this: it builds from the sources, where neither define is set. Two features step aside for it, and the README says which and how to get them back.',
+      'Project files for the eight documentation samples. Open any of them in Lazarus and build - that is the whole recipe. They were written earlier but never reached a release: the slicer did not carry the extension, so the files existed and travelled nowhere.',
+    ],
+    fixed: [
+      'The accelerator got the order wrong when a function call stood on the right of a division. Reading the right operand consumed the rest of the term instead of one step, so 6 / cos(x) / 16 was evaluated as 6 / (cos(x) / 16), and x / sqr(y) * y as x / (sqr(y) * y). Only a call was affected - with a variable or a constant there the fold stayed left to right, which is why it hid. On x86-64 the emitter takes such formulas and the emitter is right, so the wrong answers surfaced only where there is no emitter. Checked by comparing three thousand random formulas against the interpreter on every target: zero disagreements.',
+      'The differential check that should have caught it was comparing nothing. It skipped every formula the accelerator declined, and off x86-64 that is every formula there is - the check reported three thousand compared and zero disagreements while comparing none of them. It now reads the level off the interpreter counter, and the floor it guards is a real number again.',
+      'The value record was a different size on 32 bits: twenty bytes instead of twenty-four, with the payload four bytes in rather than eight. The compiled script format carries that record verbatim, so a script built on 64 bits would not have loaded on 32. The directive that was supposed to keep the layout identical sets a limit on alignment, not a size, and on i386 nothing in the record asked for eight. It is now padded out by hand, and the layout is the same everywhere.',
+      'The package used to hand a unit of its own to anyone who installed it, under a name the system already uses. On Windows Messages comes from the runtime, and ours stood in front of it; the LCL does not survive that, and a project that used both stopped with a message naming a unit it could see. The stand-in is now added only where the system has no such unit at all.',
+      'Installing the accelerator package rebuilt forty-one units of the parser into a second directory of its own. The two sets of compiled units then disagreed, and a sample that used both stopped on a unit that was lying right there. The accelerator now uses what the parser package built, as it was always meant to: six units instead of forty-seven.',
+    ],
+  },
+  {
+    // The v1.0.9 tag does not exist yet: remove this line in the same pass that puts the
+    // tag in place.
     pending: true,
     tag: 'v1.0.9', date: '8 August 2026', title: 'The stable compiler builds all of it, and what an outside reading found',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.9',
@@ -472,7 +497,6 @@ const RELEASES = [
       'TFormulaData exposed a field spelled Corrent while the property beside it is Correct. Correct is now available on the record as well, over the same byte',
     ],
   },
-  
   {
     tag: 'v1.0.8', date: '7 August 2026', title: 'Three ways into an evaluation, and the mask now covers all of them',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.8',
@@ -485,7 +509,6 @@ const RELEASES = [
       'Looking a name up in the parser tables converted the string to lower case twice per lookup, once for the hash and once for the comparison. Same string, same result, two trips to the memory manager. Deriv went from fourteen allocations per call to eleven and from 4.05 to 3.40 microseconds',
     ],
   },
-  
   {
     tag: 'v1.0.7', date: '7 August 2026', title: 'Three pieces of thread state that belonged to somebody else',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.7',
@@ -498,7 +521,6 @@ const RELEASES = [
       'The plotting engine has never built on Free Pascal 3.2.2 and cannot: a geometry dependency sorts points with an anonymous comparer, and function references arrived in 3.3.1. The parser next door does build with 3.2.2. Both facts are now stated - in the crossgraph README, and by the Linux build script, which says so instead of stopping with a syntax error in the middle of a file you did not write',
     ],
   },
-  
   {
     tag: 'v1.0.6', date: '7 August 2026', title: 'A hidden button is hidden for real',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.6',
@@ -508,7 +530,6 @@ const RELEASES = [
       'And underneath that, a second one it had been hiding. The panel asks the host whether there is an editor, and the Lazarus host answered in the same reply it uses to hand back the previous session - so whenever the panel opened with work in it, which is nearly always, the answer never arrived at all. It was invisible while the buttons were showing anyway. The greeting is now its own message and goes out first',
     ],
   },
-  
   {
     tag: 'v1.0.5', date: '7 August 2026', title: 'The library builds with Free Pascal 3.2.2 again, and the Linux matrix says so',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.5',
@@ -525,7 +546,6 @@ const RELEASES = [
       'The Linux test script looks for the widgetset folder instead of naming one, so a Lazarus built with gtk2 no longer reports a missing Interfaces unit',
     ],
   },
-  
   {
     tag: 'v1.0.4', date: '8 August 2026', title: 'The plugin reads the formula under the mouse, and sends the report back into the editor',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.4',
@@ -540,7 +560,6 @@ const RELEASES = [
       'The README said to select an expression and press Alt+G, which was never how it worked: the formula is taken from under the mouse pointer, and Alt+G only opens the panel',
     ],
   },
-  
   {
     tag: 'v1.0.3', date: '7 August 2026', title: 'An Exit reaches the evaluation it belongs to, and the thread-safety contract stops overpromising',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.3',
@@ -555,7 +574,6 @@ const RELEASES = [
       'The package descriptions said "Copyright Yuriy Pisarev" where the repository is MIT, and carried a version unrelated to the product',
     ],
   },
-  
   {
     tag: 'v1.0.2', date: '6 August 2026', title: 'One parser, many threads: Exit belongs to its own evaluation',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.0.2',
@@ -569,7 +587,6 @@ const RELEASES = [
       'The plugin archive is reproducible: repacking the same content gives the same checksum',
     ],
   },
-  
   {
     tag: 'v1.0.1', date: '5 August 2026', title: 'Interruptible loops and per-system formula sheets',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.0.1',
