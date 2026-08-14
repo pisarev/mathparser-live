@@ -684,6 +684,16 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
     </div>
     <article class="rel">
       <div class="when">
+        <a class="tag" href="https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.1">v1.1.1</a>
+        <span class="date">14 August 2026</span>
+      </div>
+      <div class="what">
+        <h3>The docked panel stops redrawing itself</h3>
+        
+        <p class="kind">Fixed</p><ul><li>Docked in a side panel, the plugin redrew its picture about twice a second while nobody touched it. The status line at the bottom has little room in a narrow panel, so its text wrapped: "ready" took one line, the report about the points took two. That changed the height of the bottom bar, the canvas lost and regained the same 64 pixels, the size observer read it as a real resize and asked for a rebuild, and the rebuild changed the text back. Measured on a docked panel: 36 rebuilds in 20 seconds of an untouched window, 437 ms of computation each. Now none, while a real resize still rebuilds. The status line keeps to one line and holds a fixed share of the row, so nothing it displays can move the layout. A floating window is wide enough that the wrap never happens, which is why the report named the docked panel and not the floating one.</li><li>The component that does the computing kept a window on screen underneath the page and painted nothing into it. Every time the container resized the panel, that window was told to repaint and left standing whatever had been there. Measured: seven such repaints for six resizes of a docked panel, not one of them drawing a pixel. It is off the screen now while the page draws; the computation is untouched, and results still arrive in that window from the worker threads.</li><li>The graph component painted outside the normal repaint cycle. An invalidation called the painting routine directly, which left the window still invalid, so the system sent a real repaint afterwards and the picture was drawn twice with the background erased in between; results from the worker threads went to the screen the same way, out of turn; and the tracing line was drawn over the buffer rather than into it, so it vanished at the next repaint. Now an invalidation marks the window and the system repaints once, the tracing line lives in the buffer, and the control declares itself opaque - it covers every pixel it owns, so erasing the background under it was only a flash.</li><li>A docking panel whose window was recreated stayed registered with Notepad++ under the old handle, and the editor had nothing live to put back into the dock. Registration now happens on every window creation, as the modeless registration already did. Three docking notifications that were declared and never handled - dropped after dragging, switched in, switched off - are handled as well.</li></ul>
+      </div>
+    </article><article class="rel">
+      <div class="when">
         <a class="tag" href="https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.0">v1.1.0</a>
         <span class="date">10 August 2026</span>
       </div>
