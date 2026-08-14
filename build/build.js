@@ -453,9 +453,6 @@ const METHODS = [
 */
 const RELEASES = [
   {
-    // The v1.1.1 tag does not exist yet: remove this line in the same pass that puts the
-    // tag in place.
-    pending: true,
     tag: 'v1.1.1', date: '14 August 2026', title: 'The docked panel stops redrawing itself',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.1',
     added: [],
