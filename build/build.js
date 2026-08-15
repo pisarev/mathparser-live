@@ -453,6 +453,20 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.1.2', date: '15 August 2026', title: 'The component survives being dropped on a form',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.2',
+    added: [],
+    fixed: [
+      'Dropped on a form under Free Pascal, the graph component could take the application down with it. The component drives itself from a precise timer, and the two compilers give that timer different lives: under Delphi it is a window timer whose handler runs in the main thread, under Free Pascal the same class runs a thread of its own and calls the handler there. So the handler painted from a worker thread while the main thread painted the same control, and the pen cache of the LCL does not survive that. Measured before the fix: six crashes in ten runs; after it: none in a hundred and fifteen. The handlers no longer do the work - each posts a message to its own window and the work happens in the main thread. The contract of the timer is now written down in the header of its unit, so the next reader does not have to discover it from a crash.',
+      'The component came up black on a form under Lazarus. Under the LCL the default colour of a control is not a colour at all but an instruction to ask the environment for one, and an off-screen bitmap has no environment to ask: the request resolved to black, while the same line under Delphi produced the ordinary window colour. The buffer is filled with a resolved colour now, and the two fonts the component owns are given explicit defaults instead of inheriting the same uncertainty.',
+      'The packages compiled and then did nothing: the components never reached the palette. Three things were missing at once - none of the packages declared itself usable at design time, eight units registered components without saying so in the package description, and the parser package declared no dependencies at all, so the IDE would not rebuild without the unit that provides the registration interface. Any one of them alone leaves the same symptom, so all three are fixed together. Checked the only way that means anything: by installing the packages into an IDE and placing a component on a form with the mouse.',
+      'Pasting into the formula list did nothing in the Delphi build of the plugin. The panel is a page inside the plugin, and text pasted from the clipboard has to travel from the host to that page; the host recognised only its own saved state and dropped everything else on the floor. Both builds now decide the same way - the clipboard either holds a saved state, which is decoded and checked before it is trusted, or it holds plain text, which is handed to the page as text. The two builds are fed the same nine cases and required to answer identically, in either direction.',
+      'A step of the mouse wheel could be lost. The flag saying which way to zoom was written by the main thread and read - and cleared - by the timer thread, so a click that landed between the reading and the clearing vanished without a trace. Both ends are in the main thread now.',
+      'A unit the plugin needs was missing from the published composition, so the Delphi build could not be built from a fresh clone at all. The same class of omission had happened once before with another unit, and the warning about it was written down in the very file where it happened again. It is now caught by a check rather than by a reader.',
+    ],
+  },
+  
+  {
     tag: 'v1.1.1', date: '14 August 2026', title: 'The docked panel stops redrawing itself',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.1',
     added: [],
