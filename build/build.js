@@ -453,6 +453,21 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.2.0', date: '15 August 2026', title: 'The libraries build on older Delphi',
+    link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.2.0',
+    added: [
+      'The parser and the plotting engine build on Delphi 10.2 Tokyo through 13; the plugin builds on 11 Alexandria through 13. Every version in that range is a real installation rather than an expectation: before a release each one compiles the units one at a time, and the range printed in the README moves only when that run agrees. The plugin stops at 11 for a reason that is not in our code - it reaches WebView2 through a unit Embarcadero began shipping in the RTL with that version, and on 10.2 through 10.4 the unit is simply absent.',
+    ],
+    fixed: [
+      'A version test stopped the build on every Delphi up to and including 11. One unit chose between two shapes of an iterator callback by testing a Free Pascal version constant, and the test sat inside a branch Delphi never takes. That is not as safe as it looks: Delphi evaluates the expression regardless of the branch, meets a constant it has never heard of, and stops. The choice is made by generation symbols now, which either exist or do not and need nothing evaluated to find out.',
+      'An array literal bound to the wrong type on Delphi before 12. Until that version the dynamic string array and the generic array of string are two distinct types rather than one, so a literal passed to a parameter taken by reference bound to the type the call did not want. The two calls in the parser and one declaration in the plugin build their array in a variable now.',
+      'The token handed back by GdiplusStartup changed type in the RTL between 10.3 and 10.4, from a plain unsigned long to a pointer-sized one. It is taken by reference, so the mismatch was an error rather than a warning, and the plotting engine would not build on the two older versions. The variable is declared by a numeric test on the compiler version now.',
+      'A form knows its own pixels per inch, but that property is protected until Delphi 11, and the dark-theme code read it directly. An accessor class opens it, and the one line now works on every version without a version test of any kind.',
+      'A conditional symbol with a dot in its name does not ask what it appears to ask. Delphi cuts the name at the dot, so the symbols naming the point releases of the 10 line all resolve to the same thing and answer yes as far back as 10 Seattle. Measured on a 10.2 installation, all three of them answer yes. Tests that have to tell those versions apart use the numeric compiler version instead.',
+    ],
+  },
+  
+  {
     tag: 'v1.1.2', date: '15 August 2026', title: 'The component survives being dropped on a form',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.2',
     added: [],
