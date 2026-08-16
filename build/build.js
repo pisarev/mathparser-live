@@ -453,6 +453,17 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.2.1', date: '16 August 2026', title: 'An extremum is a property of the function, not of the sampling',
+    link: 'https://github.com/pisarev/pascal-crossgraph/releases/tag/v1.2.1',
+    added: [],
+    fixed: [
+      'The extremum marked on a curve was the nearest computed point rather than the extremum itself. Three things followed from that, and a reader of the plugin noticed all three: for y = x*x the answer was not zero and did not agree with the value the report printed; the mark moved when the window or the quality changed, because the grid of computed points moved with them; and raising the accuracy brought the answer closer without ever reaching it. The vertex of the drawn polyline now only opens the search - the extremum itself is found on the function, by ternary search inside the bracket the vertex gives. Measured on a shifted parabola, a shifted sine and a cusp: the answer lands within about a hundred-millionth, and it is the same answer at two different zooms.',
+      'A parabola tested at a symmetric window passed while all of this was broken, because zero fell exactly on a grid point and the right answer came out by alignment rather than by calculation. The checks that guard this now put the extremum deliberately off the grid, and ask for the same answer at two zooms rather than one.',
+      'The build button carried a word next to its icon. The word is gone; the button keeps its name for the tooltip and for a screen reader. In a docked panel this also takes pressure off the width of the row, and a row that wraps is what used to make the panel rebuild itself.',
+    ],
+  },
+  
+  {
     tag: 'v1.2.0', date: '15 August 2026', title: 'The libraries build on older Delphi',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.2.0',
     added: [
