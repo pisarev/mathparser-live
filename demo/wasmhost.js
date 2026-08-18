@@ -535,6 +535,32 @@ function findOverlaps() {
         if (gap[k] * (1 + 1e-6) >= gap[k - 1] || gap[k] > gap[k + 1]) continue;
         const p = at(A, k), q = at(A, k + 1);
         const chord = Math.hypot(q.x - p.x, q.y - p.y);
+        /*
+          AN INFINITE CHORD IS NOT A CHORD, and nothing can be measured along it.
+
+          Reported on 17.08.2026: X // Sin (X) together with Sin(X) and Cos(X)/2
+          at a distance brought the building down with "Cannot read properties of
+          undefined (reading 'x')". Near the zeros of the sine the values of that
+          formula run off to infinity, and the chord between neighbouring nodes
+          comes out infinite.
+
+          From there the infinity passes THROUGH BOTH gates, because both of them
+          compare on "greater": `gap > chord`, and below `gap > chord * 1e-2`,
+          are false rather than true when the chord is infinite. The segment was
+          declared a touch, the refinement returned its fallback answer without a
+          point, and that point went into put - which is where it fell.
+
+          Comparisons on "greater" cannot catch this by their nature: any
+          condition of the form "too far away" lets everything through when
+          infinity stands on the right. So the check stands on a line of its own
+          and asks outright.
+
+          Notepad++ does not have this: there the intersections are computed by
+          the engine in Pascal, while here they are written again in JavaScript.
+          One of the two implementations drifted from the other - exactly the
+          case the README speaks of.
+        */
+        if (!isFinite(chord)) continue;
         if (gap[k] > chord) continue;
         
         const l = gapMate[k];
@@ -542,6 +568,20 @@ function findOverlaps() {
           B.xs[l], B.xs[Math.min(l + 2, B.xs.length - 1)], gapPoint[k]);
         
         if (got.gap > chord * 1e-2) continue;
+        /*
+          The refinement returned an answer WITHOUT A POINT - there is no touch.
+
+          approach hands back its fallback `{ gap: Infinity, point }` carrying the
+          very point it was given; and what it is given is gapPoint[k], which is
+          not filled in until a gap has been measured at least once. Such an
+          answer is supposed to be sifted out by the gap - but it sifts it with a
+          comparison, and a comparison against infinity, as seen above, sifts out
+          nothing.
+
+          A mark without a point is not a mark. We ask directly rather than hope
+          that only good things reach this far.
+        */
+        if (!got.point || !isFinite(got.gap)) continue;
         touches.push({ point: got.point, gap: got.gap, chord: chord, arg: A.xs[k] });
       }
       
@@ -936,11 +976,27 @@ function doBookmark(m) {
     localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
   }
   if (m.mode === "load" && marks[m.slot]) {
-    
-    const state = marks[m.slot];
+    /*
+      Loading is NON-destructive: the slot gives out its state and stays
+      occupied, and it can be returned to as many times as you like.
+
+      The opposite stood here - "loading is one-shot, as it is in the plugin" -
+      and the argument was an honest one for that arrangement: while being
+      occupied meant "the next click will restore", there was no way to write
+      over an occupied slot. Now being occupied means "something is lying here",
+      writing over and clearing are separate gestures, and there is no need to
+      put the slot out.
+
+      The remark in issue #3 was about exactly this: a person counted the state
+      as remembered, and it disappeared on the very first restore.
+    */
+    reply({ type: "snapshot", ...marks[m.slot] });
+  }
+  // Clearing a slot. The only way to free it now that loading no longer does
+  // so; without it ten occupied slots are a dead end.
+  if (m.mode === "drop") {
     marks[m.slot] = null;
     localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
-    reply({ type: "snapshot", ...state });
   }
   reply({ type: "bookmarks", slots: Array.from({ length: 10 }, (_, i) => !!marks[i]) });
 }
@@ -963,6 +1019,22 @@ function handle(m) {
       const fb = document.getElementById("fontBtn");
       if (fb) (fb.closest(".row") || fb).style.display = "none";
 
+      /*
+        THE GREETING. Without it the page does not know it is in a browser.
+
+        The buttons that belong here alone - the point table - are marked web-only
+        and hidden in the markup. The page reveals them ON A SIGNAL: `hello` with
+        an `editor` flag is the plugin, `hello` without one is the site. Waiting
+        for the signal rather than guessing on a timer is a deliberate rule of the
+        page: a button that appears and then disappears is worse than one that was
+        never there.
+
+        The plugin host sends `hello`; this one never did, and the point table -
+        made for the site - could not be reached on the site.
+
+        No `editor` flag here, and there should be none: there is no editor.
+      */
+      reply({ type: "hello" });
       const last = savedState();
       if (last) reply({ type: "snapshot", ...last });
       reply({ type: "bookmarks", slots: Array.from({ length: 10 }, (_, i) => !!loadMarks()[i]) });
