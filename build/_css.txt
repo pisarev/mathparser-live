@@ -299,8 +299,16 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .fits figure{ margin:0 }
 .fits img{ display:block; width:100%; height:auto;
   border:1px solid var(--rule); border-radius:.5rem }
+/*
+  The caption runs the whole width, with no 72ch limit.
+
+  The limit makes sense under a narrow picture. Here a full-width shot stands
+  above it and a full-width table below it, and the caption between them made a
+  staircase: wide, narrow, wide again. That step is more visible than the gain
+  from a short line.
+*/
 .fits figcaption{ color:var(--ink-soft); font-size:.9375rem; line-height:1.6;
-  margin-top:.85rem; max-width:72ch }
+  margin-top:.85rem }
 .fits figcaption b{ color:var(--ink); font-weight:600 }
 .fits figcaption code{ font:400 .875rem/1.5 var(--mono) }
 /*
