@@ -150,7 +150,8 @@ begin
       HasPrev := True;
     end;
     FlushSeg;
-    Result := Format('{"ok":true,"polar":%s,"segs":[%s]}', [LowerCase(BoolToStr(C.Polar, True)), Segs.CommaText.Replace('"', '')]);
+    Result := Format('{"ok":true,"polar":%s,"segs":[%s]}',
+      [LowerCase(BoolToStr(C.Polar, True)), Segs.CommaText.Replace('"', '')]);
   finally
     Segs.Free; Cur.Free;
   end;
