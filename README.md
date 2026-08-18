@@ -30,6 +30,36 @@ That is also why the point counts in `export_curves.dpr` are part of the picture
 rather than a setting. A Maurer rose exists because 361 points are joined by
 straight chords: sample it densely and you get an ordinary flower.
 
+## Installation
+
+There is nothing to install. This repository is a website - open
+[the pages](https://pisarev.github.io/mathparser-live/) and the demo runs in the
+browser, parser and all.
+
+Building it locally takes node and a checkout of the parser beside this one,
+because the Pascal on the pages is read from the parser's sample programs rather
+than typed into the generator:
+
+```
+mkdir %USERPROFILE%\Desktop\Live
+cd /d %USERPROFILE%\Desktop\Live
+git clone https://github.com/pisarev/pascal-mathparser.git
+git clone https://github.com/pisarev/mathparser-live.git
+
+cd mathparser-live\build
+node build.js
+node build_docs.js
+node build_start.js
+```
+
+Five HTML files land in `build/`: the front page, syntax, accelerator,
+limitations and start. Move them one level up to have a working copy of the site.
+
+Two heavier cases have sections of their own below. Recomputing the curves needs
+Delphi or FPC and the parser sources; rebuilding `demo/parsewasm.wasm` needs an
+FPC cross compiler for WebAssembly, which is built from the FPC sources. Neither
+is required to look at the pages, and neither is required to change them.
+
 ## Rebuilding the pages
 
 The Pascal shown on the pages is not typed into the generator: it is read from
