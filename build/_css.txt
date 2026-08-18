@@ -278,6 +278,35 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .feats .v{ color:var(--ink-soft); font-size:.9375rem; line-height:1.5;
   text-align:justify; hyphens:auto; -webkit-hyphens:auto }
 
+/*
+  Screenshots of a fit. The first raster pictures on the site: everything else
+  here is markup and SVG computed by the engine. There is no other way to show a
+  fit - it is visible only at work, and a person does not find it from a
+  description in words.
+
+  Full width, one column: the formula and the caveat can be read off the frame,
+  and at half the width they turn to porridge.
+*/
+.fits{ display:grid; gap:clamp(1.5rem,3vw,2.5rem); margin-top:2rem }
+.fits figure{ margin:0 }
+.fits img{ display:block; width:100%; height:auto;
+  border:1px solid var(--rule); border-radius:.5rem }
+.fits figcaption{ color:var(--ink-soft); font-size:.9375rem; line-height:1.6;
+  margin-top:.85rem; max-width:72ch }
+.fits figcaption b{ color:var(--ink); font-weight:600 }
+.fits figcaption code{ font:400 .875rem/1.5 var(--mono) }
+/*
+  The table under the screenshot - so that the reader has something to paste.
+
+  A share link will not carry a series: it is stripped from the link on purpose,
+  a series can hold ten thousand points. And without the data a screenshot stays
+  a tale of a miracle: you can look at it, you cannot repeat it. It also makes
+  the numbers in the caption checkable.
+*/
+.fits .try{ display:block; margin-top:.6rem }
+.fits .data{ margin:.75rem 0 0; padding:.9rem 1rem; overflow-x:auto;
+  background:var(--plate); border:1px solid var(--rule); border-radius:.5rem;
+  font:400 .8125rem/1.7 var(--mono); color:var(--ink-soft) }
 /* ── quick start ───────────────────────────────────────────────────────── */
 .start{ padding:clamp(3rem,6vw,5rem) 0; display:grid;
   grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:clamp(2rem,5vw,4rem) }

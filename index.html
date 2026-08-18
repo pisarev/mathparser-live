@@ -240,6 +240,20 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .feats .v{ color:var(--ink-soft); font-size:.9375rem; line-height:1.5;
   text-align:justify; hyphens:auto; -webkit-hyphens:auto }
 
+.fits{ display:grid; gap:clamp(1.5rem,3vw,2.5rem); margin-top:2rem }
+.fits figure{ margin:0 }
+.fits img{ display:block; width:100%; height:auto;
+  border:1px solid var(--rule); border-radius:.5rem }
+.fits figcaption{ color:var(--ink-soft); font-size:.9375rem; line-height:1.6;
+  margin-top:.85rem; max-width:72ch }
+.fits figcaption b{ color:var(--ink); font-weight:600 }
+.fits figcaption code{ font:400 .875rem/1.5 var(--mono) }
+
+.fits .try{ display:block; margin-top:.6rem }
+.fits .data{ margin:.75rem 0 0; padding:.9rem 1rem; overflow-x:auto;
+  background:var(--plate); border:1px solid var(--rule); border-radius:.5rem;
+  font:400 .8125rem/1.7 var(--mono); color:var(--ink-soft) }
+
 .start{ padding:clamp(3rem,6vw,5rem) 0; display:grid;
   grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:clamp(2rem,5vw,4rem) }
 .start h2{ margin:.6rem 0 1.5rem; font-weight:400; line-height:1.12; font-size:1.75rem; letter-spacing:-.01em }
@@ -610,6 +624,16 @@ P := TJitParser.Create(<span class="kw">nil</span>);
           browser</a> - the same panel on the same engine, compiled to
           WebAssembly. What the demo computes is what the plugin computes; only the
           x86-64 accelerator stays native.</p>
+        <p class="intro">Numbers work as well as formulas, and this part is worth
+          spelling out because nothing on screen announces it. Paste a table into
+          the panel - two columns, any of the usual separators - and the pairs
+          become points on the canvas. A row appears for them beside the
+          formulas, and in that row you pick a fit: a straight line, a polynomial
+          of the second to the fifth degree, exponential, power or logarithmic.
+          The fitted formula is laid over the points with its R^2 and the caveats
+          that belong beside it. It is an ordinary formula from then on, so
+          everything else works on it - tracing, extrema, intersections, the
+          report.</p>
       </div>
     </div>
     <div class="body">
@@ -617,10 +641,58 @@ P := TJitParser.Create(<span class="kw">nil</span>);
         <span class="label">Live</span>
         <span class="t">Open the panel</span>
         <span class="d">The engine loads into your browser and computes as you
-          type. Nothing is sent anywhere.</span>
+          type. Paste a table and it fits a formula to your points. Nothing is
+          sent anywhere.</span>
       </a>
       <div class="feats">
-        <div><span class="k">Formulas</span><span class="v">as many as you like, each toggled and coloured on its own</span></div><div><span class="k">Coordinates</span><span class="v">cartesian and polar, switched without retyping</span></div><div><span class="k">Finds</span><span class="v">intersections between curves, minima and maxima, values under the cursor</span></div><div><span class="k">Report</span><span class="v">roots, breaks, monotone stretches, area and mean - computed, not guessed</span></div><div><span class="k">Bookmarks</span><span class="v">ten slots for the whole state, kept between sessions</span></div><div><span class="k">Themes</span><span class="v">follows the editor, light and dark</span></div>
+        <div><span class="k">Formulas</span><span class="v">as many as you like, each toggled and coloured on its own</span></div><div><span class="k">Data</span><span class="v">paste a table or a csv - the two columns become points on the canvas</span></div><div><span class="k">Regression</span><span class="v">fit a formula to those points: line, polynomial, exponential, power, log</span></div><div><span class="k">Coordinates</span><span class="v">cartesian and polar, switched without retyping</span></div><div><span class="k">Finds</span><span class="v">intersections between curves, minima and maxima, values under the cursor</span></div><div><span class="k">Report</span><span class="v">roots, breaks, monotone stretches, area and mean - computed, not guessed</span></div><div><span class="k">Bookmarks</span><span class="v">ten slots for the whole state, kept between sessions</span></div><div><span class="k">Themes</span><span class="v">follows the editor, light and dark</span></div>
+      </div>
+      
+      <div class="fits">
+        <figure>
+          <img src="fit-kepler.png" alt="Six planets as points and the fitted power law over them"
+               width="2360" height="1560" loading="lazy">
+          <figcaption><b>Six rows of a table, and out comes a law of nature.</b>
+            Orbital radius against period for the planets from Mercury to Saturn -
+            the numbers an astronomy textbook gives. A power fit answers
+            <code class="formula">1.00029 * Exp(1.499715 * Ln(X))</code>: an exponent of 1.4997 and
+            a factor of 1.0003. That exponent is Kepler's third law, which took him
+            years of observation. Nothing was told to the panel except the six
+            pairs of numbers.
+            <span class="try">Copy the table, paste it into the panel, pick
+            <b>power</b> in the row that appears:</span></figcaption>
+          <pre class="data">radius;period
+0.387;0.241
+0.723;0.615
+1.000;1.000
+1.524;1.881
+5.203;11.862
+9.537;29.457</pre>
+        </figure>
+        <figure>
+          <img src="fit-throw.png" alt="Eleven measured points and the parabola fitted through them"
+               width="2360" height="1560" loading="lazy">
+          <figcaption><b>Eleven measurements of a throw, and the parabola behind them.</b>
+            A polynomial of the second degree answers
+            <code class="formula">-0.495688 * X * X + 4.972331 * X + 0.014685</code> with
+            R^2 = 0.9997. The caveat sits beside the answer rather than in the
+            documentation: R^2 grows with the number of coefficients by itself, so
+            a higher degree would fit better and mean less.
+            <span class="try">Same table, same two steps - pick
+            <b>polynomial 2</b> this time:</span></figcaption>
+          <pre class="data">x;height
+0;0.0
+1;4.5
+2;8.1
+3;10.4
+4;11.9
+5;12.4
+6;12.0
+7;10.6
+8;8.2
+9;4.6
+10;0.1</pre>
+        </figure>
       </div>
     </div>
   </section>
@@ -683,6 +755,16 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
       <p class="label">newest first</p>
     </div>
     <article class="rel">
+      <div class="when">
+        <a class="tag" href="https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.0">v1.3.0</a>
+        <span class="date">17 August 2026</span>
+      </div>
+      <div class="what">
+        <h3>A table becomes points, and the points become a formula</h3>
+        <p class="kind">Added</p><ul><li>A selection in the editor is plotted while you are making it. Select a pair of columns in a csv and the points appear on the canvas at once; the next selection replaces them, so nothing piles up. Alt+Shift+G keeps what is shown for good, as an ordinary row of the list.</li><li>Text with numbers becomes a series of points. The separator is worked out from the data - a semicolon, a tab, a comma, a space - and a decimal comma is not mistaken for one. A header row names the series. Points are drawn as points, not joined by a line: a line between measurements would draw values where nothing was measured.</li><li>A formula is fitted to those points: a straight line, a polynomial of the second to the fifth degree, exponential, power or logarithmic. The result is an ordinary formula string, so everything already there works on it - tracing, extrema, intersections, the report, bookmarks, the share link.</li><li>The caveats stand beside the answer rather than in the documentation. R^2 grows with the number of coefficients by itself; the exponential, power and logarithmic fits are computed through logarithms, so it is the deviation of the logarithms that is least; least squares is sensitive to outliers.</li><li>Undo. Ctrl+Z, or the button next to the bin, takes back the last destructive action - clearing the panel, removing a curve or a series, a fit. Twenty steps, and the tooltip names what will be undone.</li><li>The panel says why it is empty. Without the WebView2 runtime it used to stay blank with no explanation; now it names the reason and what to do about it.</li></ul>
+        <p class="kind">Fixed</p><ul><li>The colour you picked is the colour the curve is drawn in. While "a colour of its own for every formula" was set, the chosen colour was not used at all, and the control looked as though it worked. Picking a colour now turns that mark off, and the switch for it stands in plain sight.</li><li>A bookmark slot stays occupied after you restore from it, and you can return to the same bookmark as many times as you like. Restoring used to free the slot, so click after click went remember - restore - remember. Ctrl+click writes over a slot, Shift+click clears it, and both gestures are written in the tooltip.</li><li>Printing puts the whole report on paper, not the part that happened to be visible. The report lived in a scrolling window and was clipped along with the scrollbar; the graph is printed too, on a page of its own.</li><li>Clear stands at the end of the button row, behind a separator, with undo before it. It used to sit between Print and Report - three neighbours, two of which show something and the third wiped the list without a question. It now clears the whole panel, series included, and the caption says so.</li><li>A formula whose values run off to infinity no longer brings the browser demo down. X // Sin (X) beside other curves made the build fail outright: near the zeros of the sine the chord between neighbouring nodes came out infinite, and the search for touches let it through - both of its gates compare on "greater", and infinity on the right lets everything past. The plugin was never affected: there the intersections are computed by the engine, and in the browser they are written again in JavaScript.</li></ul>
+      </div>
+    </article><article class="rel">
       <div class="when">
         <a class="tag" href="https://github.com/pisarev/pascal-crossgraph/releases/tag/v1.2.1">v1.2.1</a>
         <span class="date">16 August 2026</span>

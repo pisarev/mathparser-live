@@ -240,6 +240,20 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .feats .v{ color:var(--ink-soft); font-size:.9375rem; line-height:1.5;
   text-align:justify; hyphens:auto; -webkit-hyphens:auto }
 
+.fits{ display:grid; gap:clamp(1.5rem,3vw,2.5rem); margin-top:2rem }
+.fits figure{ margin:0 }
+.fits img{ display:block; width:100%; height:auto;
+  border:1px solid var(--rule); border-radius:.5rem }
+.fits figcaption{ color:var(--ink-soft); font-size:.9375rem; line-height:1.6;
+  margin-top:.85rem; max-width:72ch }
+.fits figcaption b{ color:var(--ink); font-weight:600 }
+.fits figcaption code{ font:400 .875rem/1.5 var(--mono) }
+
+.fits .try{ display:block; margin-top:.6rem }
+.fits .data{ margin:.75rem 0 0; padding:.9rem 1rem; overflow-x:auto;
+  background:var(--plate); border:1px solid var(--rule); border-radius:.5rem;
+  font:400 .8125rem/1.7 var(--mono); color:var(--ink-soft) }
+
 .start{ padding:clamp(3rem,6vw,5rem) 0; display:grid;
   grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:clamp(2rem,5vw,4rem) }
 .start h2{ margin:.6rem 0 1.5rem; font-weight:400; line-height:1.12; font-size:1.75rem; letter-spacing:-.01em }
