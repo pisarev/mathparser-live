@@ -287,7 +287,15 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
   Full width, one column: the formula and the caveat can be read off the frame,
   and at half the width they turn to porridge.
 */
-.fits{ display:grid; gap:clamp(1.5rem,3vw,2.5rem); margin-top:2rem }
+/*
+  The shots take BOTH columns.
+
+  The block sits inside .tool .body - a grid of 7fr for the plate and 5fr for
+  the list of features. Without this line it lands in the first column of the
+  next row: the pictures shrink to seven twelfths of the width and half the
+  page stands empty beside them.
+*/
+.fits{ grid-column:1/-1; display:grid; gap:clamp(1.5rem,3vw,2.5rem); margin-top:2rem }
 .fits figure{ margin:0 }
 .fits img{ display:block; width:100%; height:auto;
   border:1px solid var(--rule); border-radius:.5rem }
