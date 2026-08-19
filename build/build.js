@@ -513,6 +513,17 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.3.1', date: '19 August 2026', title: 'The recipe runs on a machine that is not mine',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.1',
+    added: [],
+    fixed: [
+      'The Delphi build looked for the compiler in one fixed folder and only ever found RAD Studio 13. It reads the installed versions from the registry now, so 11 Alexandria and newer build as the README says. Set BDS_BIN to pin a particular installation.',
+      'The build and install scripts asked for pwsh. PowerShell 7 ships with no Windows at all, so the recipe stopped on its first command for anyone who had not installed it separately. The scripts run under the PowerShell that comes with Windows, and the instructions say powershell now, with the execution-policy switch that a downloaded script needs.',
+      'The Notepad++ plugin opened with different settings depending on which of the two builds you installed: the zoom step was 0.5 in the Delphi build against 0.1 in the Lazarus one, and six other numbers differed with it. Both builds now carry the same defaults and seed them into the component before anything saved is read.',
+    ],
+  },
+
+  {
     tag: 'v1.3.0', date: '17 August 2026', title: 'A table becomes points, and the points become a formula',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.0',
     added: [
