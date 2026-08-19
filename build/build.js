@@ -513,6 +513,15 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.3.2', date: '19 August 2026', title: 'The panel opens again',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.2',
+    added: [],
+    fixed: [
+      'The 1.3.1 plugin crashed Notepad++ the moment the panel was opened, and the download has been removed. A record that the plugin hands to the editor was laid out four bytes short of what the editor expects, so the editor read the module name from the wrong place and dereferenced whatever was there. The record is a C structure, and the directive that keeps it C-compatible was cancelled by a later one; on FPC 3.3.1 the two agree, on the 3.2.2 the README asks for they do not. 1.3.1 was the first release built with the compiler the README names, which is why the fault surfaced there.',
+    ],
+  },
+  
+  {
     tag: 'v1.3.1', date: '19 August 2026', title: 'The recipe runs on a machine that is not mine',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.1',
     added: [],
