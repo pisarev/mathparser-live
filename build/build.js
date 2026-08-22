@@ -429,7 +429,7 @@ const STACK = [
 
 const TOOL = [
   ['Formulas',    'as many as you like, each toggled and coloured on its own'],
-  ['Data',        'paste a table or a csv - the two columns become points on the canvas'],
+  ['Data',        'paste a table or a csv, or select one in the editor - two columns become points, a blank line starts the next row'],
   ['Regression',  'fit a formula to those points: line, polynomial, exponential, power, log'],
   ['Coordinates', 'cartesian and polar, switched without retyping'],
   ['Finds',       'intersections between curves, minima and maxima, values under the cursor'],
@@ -512,6 +512,29 @@ const METHODS = [
   the page is built.
 */
 const RELEASES = [
+  {
+    tag: 'v1.3.3', date: '21 August 2026', title: 'The panel answers the notes, and the parser stops guessing',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.3',
+    added: [
+      'A button on the editor toolbar and the shortcut spelled out in the panel title. The icon is drawn in code rather than shipped as a picture; that the button really appeared is proved by counting the buttons with the plugin and without it, because the editor answers TRUE to the request either way.',
+      'A reference of signs and functions behind its own button, every entry described. The list is generated from the registry of the parser itself and checked against it, so the reference cannot contain a name absent from the name table of the parser, or omit one present there.',
+      'Bookmarks became split buttons: the main part restores, the arrow offers overwrite and clear. An empty cell has no arrow.',
+      'Colour, width and dash per curve. The circle in the formula row now shows what the curve is actually drawn with rather than a shade picked by position.',
+      'A formula can be edited in place by double-clicking it, undo included.',
+      'In polar mode the angle range is shown only there, with buttons for one, two, three and five turns.',
+    ],
+    fixed: [
+      'Pasting a table read ONE table while a selection could hold several, and the point sets silently merged into one. A blank line between tables now starts a new row, columns past the second are ignored, and selecting a table in the editor does what pasting does.',
+      'The sign of a number did not reach the key of the template cache, so X + 400 and X - 400 shared one key and the second was evaluated by the script of the first: after X - 400 the expression X + 400 answered -398.5 instead of 401.5.',
+      'Sin(2) ** 3 was evaluated as Sin(8) and Ln(100) // 2 as Ln(10): the power and root signs after a function call went inside its brackets. The answer was wrong rather than refused, which is the harder case to notice.',
+      'An exponent with a sign did not read at all - 2.5E-2 and 3E+2 were refused - and a name E cut 1E3 in half. A number is now indivisible to the tokeniser.',
+      'Names that read as numbers (E3, X1, $FF, &17, %1010) were silently swallowed by number reading, differently on FPC and on Delphi. They are refused at registration now.',
+      'A per cent sign in text written by a person turned an ordinary parse error into a conversion error.',
+      'Extremum marks were thinned for the zoom they were computed at, so zooming out fused the arrows into a solid block - a square instead of an arrow. The rule now applies when drawing as well.',
+      'Thirty five English messages of the parser were rewritten and one was added.',
+    ],
+  },
+  
   {
     tag: 'v1.3.2', date: '19 August 2026', title: 'The panel opens again',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.2',
@@ -885,6 +908,28 @@ const indexBody = `  <section class="hero">
       The engine is the real parser, compiled to WebAssembly. Plus and minus have no
       knobs at all - they are how a script joins its items, not functions.
       Reload the page to reset.</p>
+    <div class="swap">
+      <div class="feats">
+        <div><span class="k">exact</span><span class="v">key is the formula
+          text; a hit hands back the compiled byte-script</span></div>
+        <div><span class="k">template</span><span class="v">key is that text
+          with the numbers cut out; a hit fills the number slots</span></div>
+        <div><span class="k">self-sizing</span><span class="v">the cache is
+          resized by formulas this same parser evaluates</span></div>
+      </div>
+      <p class="said">Two caches sit under every parse, and the second is the
+        interesting one. The <b>exact</b> cache keys on the text. The
+        <b>template</b> cache first cuts every number out of the key -
+        <code class="frag">5 + 7</code> and <code class="frag">2 + 3</code> are
+        both <code class="frag">?+?</code> - so a formula the parser has never
+        seen still finds a script compiled for its shape, and all that is left
+        is to write 5 and 7 into its number slots. Exact first, template on a
+        miss; one compile fills both. The size is not a constant either: the
+        cache registers its own hit counters as parser variables and its policy
+        as two formulas, and when the hit rate leaves the band between a quarter
+        and three quarters, the parser evaluates them and resizes the cache it
+        is itself using.</p>
+    </div>
   </section>
 
   <hr class="rule">
@@ -939,10 +984,12 @@ const indexBody = `  <section class="hero">
           browser</a> - the same panel on the same engine, compiled to
           WebAssembly. What the demo computes is what the plugin computes; only the
           x86-64 accelerator stays native.</p>
-        <p class="intro">Numbers work as well as formulas, and this part is worth
-          spelling out because nothing on screen announces it. Paste a table into
-          the panel - two columns, any of the usual separators - and the pairs
-          become points on the canvas. A row appears for them beside the
+        <p class="intro">Numbers work as well as formulas. Paste a table into the
+          panel - two columns, any of the usual separators - and the pairs become
+          points on the canvas; selecting a table in the editor does the same
+          without the paste. Leave a blank line between tables and each one
+          arrives as a row of its own. Columns past the second are ignored.
+          A row appears for them beside the
           formulas, and in that row you pick a fit: a straight line, a polynomial
           of the second to the fifth degree, exponential, power or logarithmic.
           The fitted formula is laid over the points with its R^2 and the caveats

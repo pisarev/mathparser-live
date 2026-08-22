@@ -63,6 +63,34 @@ function heading(text) {
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 /*
+  WAITING ON A CONDITION, not on the clock.
+
+  The set used to wait by deadline: 21 waits, and 14 of them right before
+  reading what the engine computes. A deadline measures the machine, not the
+  subject: enough time and it is green, not enough and it blames the innocent.
+
+  `until` waits for a condition and gives up on a limit. The limit is generous:
+  the point is not to hurry the engine but not to ask before it has answered.
+  Not there by the limit - that is no longer load.
+
+  And the opposite mistake, paid for by the same release. The failure "marks
+  are shown, shown 13" was blamed on a busy machine, and a wait for the
+  threshold was put here. It did not help and could not: the number of marks
+  shown is set by the pixel density the reader has, not by time. Waiting for
+  the unreachable is twelve silent seconds before the same failure.
+*/
+const until = async (cond, limit = 8000, step = 50) => {
+  const end = Date.now() + limit;
+  while (Date.now() < end) {
+    try {
+      if (cond()) return true;
+    } catch (e) { /* the frame window is not ready yet - wait */ }
+    await wait(step);
+  }
+  return false;
+};
+
+/*
   The cleanup holder is declared OUTSIDE, and that is not decoration.
 
   The first attempt hung finally on restoreStorage itself, and that one is declared
@@ -142,6 +170,7 @@ let cleanup = () => {};
     if (run("!!(data.seg && data.seg.length)")) break;
     await wait(200);
   }
+  await until(() => run("!!(data.seg && data.seg.length)"));
   const ready = run("!!(data.seg && data.seg.length)");
   const status = run("document.getElementById('status').textContent");
   check("engine comes up", ready, status);
@@ -293,6 +322,19 @@ let cleanup = () => {};
         canvas.dispatchEvent(at(${fx + 0.05}, ${fy - 0.04}));
       })();
     `);
+    /*
+      A DEADLINE HERE, AND IT IS NOT AN OVERSIGHT.
+
+      The check is about the LAST move: the first one takes the answer, the
+      second one lands, and it was the second that used to be lost. Waiting for
+      "some trace arrived" catches the answer to the FIRST move and lets the
+      defect through - which is what happened on 21.08.2026 when it was put
+      here: two checks went red.
+
+      The only condition available here is the assertion itself - "the trace
+      agrees with the cursor" - and waiting for a check to become true and then
+      checking it is not checking anything.
+    */
     await wait(600);
     const res = run(`
       (() => {
@@ -817,7 +859,14 @@ let cleanup = () => {};
       for (let i = 0; i < p.length; i++)
         for (let j = i + 1; j < p.length; j++)
           near = Math.min(near, Math.hypot(p[i].x - p[j].x, p[i].y - p[j].y));
-      const pixel = (2 * view.w / canvas.width + 2 * view.h / canvas.height) / 2;
+      /*
+        The pixel is measured off the CSS size, not off canvas.width. The
+        promise is about VISIBLE pixels, and on a high definition screen the two
+        numbers differ twofold: measured by canvas.width, a gap of seven visible
+        pixels would be counted as fourteen.
+      */
+      const pixel = (2 * view.w / canvas.clientWidth
+                     + 2 * view.h / canvas.clientHeight) / 2;
       return JSON.stringify({ shown: p.length, total: data.crossTotal,
         gap: near === Infinity ? -1 : near / pixel, spacing: opt.markSpacing });
     })()`));
@@ -1017,7 +1066,10 @@ let cleanup = () => {};
     curves: (data.seg || []).length,
     peaks: ((data.extremes || {}).max || []).length + ((data.extremes || {}).min || []).length })`));
   run("curves.length = 0; drawPanel(); build();");
-  await wait(700);
+  // Wait until the clearing REACHES the canvas. The check below demands zeros
+  // everywhere; if the engine is late the zeros never come and the complaint is
+  // an honest one.
+  await until(() => run('(data.seg || []).length') === 0, 10000);
   const after = JSON.parse(run(`JSON.stringify({
     curves: (data.seg || []).length,
     crossings: (data.overlaps || []).length,
@@ -1732,7 +1784,9 @@ let cleanup = () => {};
         build();
       })();
     `);
-    await wait(1400);
+    // Wait for the sampling to APPEAR rather than for a deadline: under load it
+    // could be missing by then, and the density was counted over emptiness.
+    await until(() => run("(data.seg || []).length") > 0, 12000);
     density[variant.name] = run(`
       (data.seg || []).reduce((n, c) =>
         n + (c.seg || []).reduce((m, p) => m + p.length / 2, 0), 0);
@@ -1835,14 +1889,16 @@ let cleanup = () => {};
         build();
       })();
     `);
-    await wait(1400);
+    // Wait for the build, not for a deadline: the report is made of what was computed.
+    await until(() => run('(data.seg || []).length') > 0, 12000);
     run(`
       (() => {
         const r = document.getElementById('report');
         if (!r.classList.contains('on')) document.getElementById('reportBtn').click();
       })();
     `);
-    await wait(900);
+    // Wait for the report to FILL UP, not for nine hundred milliseconds.
+    await until(() => run("(document.getElementById('report').textContent || '').trim().length > 0"), 10000);
     return run(`
       (() => {
         const r = document.getElementById('report');
@@ -2104,12 +2160,12 @@ let cleanup = () => {};
         drawPanel(); build();
       })();
     `);
-    await wait(700);
+    await until(() => run('(data.seg || []).length') > 0, 10000);
     run(`el('cs').querySelector('[data-cs="polar"]').click();`);
-    await wait(700);
+    await until(() => run('(data.seg || []).length') > 0, 10000);
     const polar = run(`curves.map(c => c.text)`);
     run(`el('cs').querySelector('[data-cs="rect"]').click();`);
-    await wait(700);
+    await until(() => run('(data.seg || []).length') > 0, 10000);
     const rect = run(`curves.map(c => c.text)`);
     return { polar, rect };
   })();
@@ -2130,35 +2186,104 @@ let cleanup = () => {};
     into a false "indistinguishable stretch". Out of about a thousand polyline
     crossings the page kept 37.
 
-    The floor is far below the honest count (165 on this scene): it guards
-    against the collapse coming back, not against wobble. Zero stretches is
-    exact - these curves cross, they never coincide.
+    Zero stretches is exact - these curves cross, they never coincide, and the
+    count of crossings is exact as well. The count of MARKS is not: thinning
+    works in pixels, and pixels are as many as the reader's window gives.
   */
   const dense = await (async () => {
-    run(`
+    const scene = gap => `
       (() => {
         el('cs').querySelector('[data-cs="polar"]').click();
         curves.length = 0;
         curves.push({ text: "Sin(X * 10)", on: true, trace: true, color: null });
         curves.push({ text: "Sin(X / 10)", on: true, trace: true, color: null });
         emptiedByUser = false;
-        opt.polarAngle = 1800;
+        opt.polarAngle = 1800; opt.markSpacing = ${gap};
         drawPanel(); build();
       })();
-    `);
-    await wait(1600);
-    return run(`({ total: data.crossTotal, shown: data.overlaps.length,
+    `;
+    /*
+      TWO MEASUREMENTS, and the first one without thinning.
+
+      Thinning works in PIXELS, and the reader has as many of them as the
+      browser zoom and the desktop scale give. On one and the same scene 10
+      marks are shown at a density of 0.6 and 49 at 2.0. A floor of "no fewer
+      than twenty" judged the window rather than the product: at the usual
+      scale it came out at 22 - a margin of two marks.
+
+      Without thinning the count is exact and free of the window: as many as
+      were found, that many on the canvas. The thinned measurement answers its
+      own question - marks stay on the canvas.
+    */
+    run(scene(0));
+    await until(() => run(
+      'data.crossTotal >= 150 && data.overlaps.length === data.crossTotal'), 15000);
+    const free = run(`({ total: data.crossTotal, shown: data.overlaps.length,
       same: (data.same || []).length })`);
+    run(scene(14));
+    await until(() => run('(data.overlaps || []).length') > 0, 15000);
+    const thin = run(`({ shown: data.overlaps.length,
+      canvas: canvas.width + "x" + canvas.height })`);
+    return { free, thin };
   })();
 
-  check("at least 150 distinct crossings are counted", dense.total >= 150,
-    "counted " + dense.total);
-  check("no false indistinguishable stretches", dense.same === 0,
-    "stretches " + dense.same);
-  check("marks are shown", dense.shown >= 20, "shown " + dense.shown);
+  check("at least 150 distinct crossings are counted", dense.free.total >= 150,
+    "counted " + dense.free.total);
+  check("no false indistinguishable stretches", dense.free.same === 0,
+    "stretches " + dense.free.same);
+  check("every crossing found reaches the canvas",
+    dense.free.shown === dense.free.total,
+    "found " + dense.free.total + ", on the canvas " + dense.free.shown);
+  check("marks are shown", dense.thin.shown > 0,
+    "shown " + dense.thin.shown + " of " + dense.free.total
+    + ", canvas " + dense.thin.canvas);
 
   run(`(() => { try { localStorage.clear(); } catch (e) {} opt.polarAngle = 360; })();`);
   await load();
+
+  heading("the reference of signs opens and fills up");
+
+  /*
+    THE REFERENCE IS ASKED OF THE HOST, and the answer has to come.
+
+    The page does not go for the file itself: opened from a file, it cannot
+    read the file next to it. So it sends `reference` to the host and WAITS -
+    it never asks twice. A host that does not know the command leaves the
+    window on "Reading the reference..." for ever: no refusal, no line in a
+    log.
+
+    That is how it was until 22.08.2026 both in the plugin and in the browser
+    shim. The button is new in 1.3.3 and worked only in the Lazarus
+    application.
+
+    We wait for the ROWS TO APPEAR rather than for a deadline: the reference is
+    read from disk or fetched.
+  */
+  const refs = await (async () => {
+    run(`document.getElementById("helpBtn").click();`);
+    await until(() => run(
+      'document.querySelectorAll("#helpList .ref-item").length') > 0, 15000);
+    const got = run(`({
+      items: document.querySelectorAll("#helpList .ref-item").length,
+      note: (document.getElementById("helpNote").textContent || "").trim(),
+      waiting: (document.getElementById("helpList").textContent || "")
+        .indexOf("Reading the reference") >= 0,
+      names: [...document.querySelectorAll("#helpList .ref-item")]
+        .slice(0, 400).map(n => n.textContent).join(" ")
+    })`);
+    run(`document.getElementById("helpBack").hidden = true;
+         document.getElementById("helpSheet").hidden = true;`);
+    return got;
+  })();
+
+  check("the reference window is not left waiting", !refs.waiting,
+    refs.waiting ? "still says: reading the reference" : "filled in");
+  check("the reference lists entries", refs.items >= 20,
+    "entries " + refs.items + ", note " + JSON.stringify(refs.note));
+  check("the reference knows the functions of the parser",
+    refs.names.indexOf("Sin") >= 0 && refs.names.indexOf("Cos") >= 0,
+    "Sin " + (refs.names.indexOf("Sin") >= 0) +
+    ", Cos " + (refs.names.indexOf("Cos") >= 0));
 
   heading("an empty sheet stays empty");
 
@@ -2185,9 +2310,10 @@ let cleanup = () => {};
         el('cs').querySelector('[data-cs="polar"]').click();
       })();
     `);
-    await wait(900);
+    await until(() => run('(data.seg || []).length') > 0, 10000);
     run(`document.getElementById('clearBtn').click();`);
-    await wait(900);
+    // Wait until the clearing reaches the list.
+    await until(() => run('curves.length') === 0, 10000);
     const before = run(`
       (() => ({
         curves: curves.length,

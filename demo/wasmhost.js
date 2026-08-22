@@ -1071,6 +1071,24 @@ function handle(m) {
     case "copy": doCopy(m); break;
     case "paste": doPaste(); break;
     case "size": case "signfont": break;
+    /*
+      The reference of signs. The page asks the HOST for it rather than
+      fetching it itself: opened from a file, it cannot read the file next to
+      it. Here this shim plays the host, and until 22.08.2026 it did not know
+      the command - there is no default branch in the dispatch, the command was
+      dropped silently, and the reference window stayed on "Reading the
+      reference..." for ever. The button is new in 1.3.3 and worked only in the
+      Lazarus application.
+
+      If it cannot be read, we answer with an EMPTY text: on it the page says
+      the reference cannot be read. An honest refusal beats waiting for ever.
+    */
+    case "reference":
+      fetch("syntax.xml")
+        .then(r => (r.ok ? r.text() : ""))
+        .catch(() => "")
+        .then(text => reply({ type: "reference", text: text }));
+      break;
   }
 }
 
