@@ -1083,6 +1083,87 @@ let cleanup = () => {};
     "curves " + after.curves + ", crossings " + after.crossings +
     ", marks " + after.peaks + ", trace " + after.trace);
 
+  heading("A lone dot is not a formula");
+  /*
+    Issue #7: a lone dot from the selection got into the list of formulas and
+    drew an empty curve. Requiring a digit will not do - pi and exp are legal
+    and hold no digits, so what is asked for is a letter OR a digit. Both sides
+    are checked: a line with neither has to be dropped, a line with no digits
+    has to stay.
+  */
+  const plot = JSON.parse(run(`JSON.stringify({
+    dot: plottable("."), dots: plottable(" .. "), dash: plottable("-"),
+    pi: plottable("pi"), exp: plottable("exp"), one: plottable("1"),
+    sin: plottable("sin(x)") })`));
+  check("a lone dot is not taken for a formula",
+    plot.dot === false && plot.dots === false && plot.dash === false,
+    "dot " + plot.dot + ", dots " + plot.dots + ", dash " + plot.dash);
+  check("a formula with no digits is still a formula",
+    plot.pi === true && plot.exp === true && plot.one === true && plot.sin === true,
+    "pi " + plot.pi + ", exp " + plot.exp + ", 1 " + plot.one + ", sin(x) " + plot.sin);
+
+  heading("The caret is not a power sign, and the page says so");
+  /*
+    Issue #5: x^2 drew nonsense, because ^ is exclusive or. The note has to
+    appear when the sign stands BETWEEN values and to keep quiet when the
+    formula is already right: otherwise it turns into noise and stops being
+    read. Both sides are checked.
+  */
+  const caret = JSON.parse(run(`(() => {
+    const keep = curves.slice();
+    const at = t => { curves.length = 0;
+      curves.push({ text: t, on: true, trace: true, color: null });
+      return caretNote().length > 0; };
+    const r = { pow: at("x^2"), spaced: at("x ^ 2"), nested: at("(x+1)^2"),
+                stars: at("x ** 2"), word: at("a xor b"), bare: at("^") };
+    curves.length = 0; keep.forEach(c => curves.push(c));
+    return JSON.stringify(r); })()`));
+  check("the caret is called out where it means exclusive or",
+    caret.pow && caret.spaced && caret.nested,
+    "x^2 " + caret.pow + ", spaced " + caret.spaced + ", nested " + caret.nested);
+  check("the note keeps quiet where the formula is already right",
+    !caret.stars && !caret.word && !caret.bare,
+    "** " + caret.stars + ", xor " + caret.word + ", bare " + caret.bare);
+
+  /*
+    THE NOTE HAS TO FIT, NOT MERELY TO APPEAR.
+
+    The two checks above ask whether the note comes out. The contract with the
+    reader is a different one: that they can READ it. The difference is not
+    theoretical - on 24.08.2026 a long note was cut off with an ellipsis exactly
+    where it became useful, and both checks were green at all three densities
+    while that happened.
+
+    The budget is set in CHARACTERS rather than pixels, and that is deliberate:
+    a pixel depends on the density and the font, and this set is run at three
+    densities. The width of the note is compared with the width of forty zeroes
+    IN THE SAME FONT as the bar - that is how many characters the live panel
+    showed in a docked editor window. A ratio of two widths does not depend on
+    the density.
+  */
+  const fits = JSON.parse(run(`(() => {
+    const bar = document.querySelector('.statusbar');
+    if (!bar) return JSON.stringify({ why: 'no status bar on the page' });
+    const cs = getComputedStyle(bar);
+    const c = document.createElement('canvas').getContext('2d');
+    c.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    const keep = curves.slice();
+    curves.length = 0;
+    curves.push({ text: 'x^2', on: true, trace: true, color: null });
+    const note = caretNote();
+    curves.length = 0; keep.forEach(x => curves.push(x));
+    return JSON.stringify({
+      note: note,
+      wide: Math.round(c.measureText(note).width),
+      budget: Math.round(c.measureText('0'.repeat(40)).width),
+      font: cs.fontSize + ' ' + cs.fontFamily.split(',')[0]
+    }); })()`));
+  check("the warning about the caret fits into the status bar",
+    !fits.why && fits.note.length > 0 && fits.wide <= fits.budget,
+    fits.why ? fits.why
+      : "note " + JSON.stringify(fits.note) + ", width " + fits.wide
+        + " against a budget of " + fits.budget + " (" + fits.font + ")");
+
   heading("A setting changed is only a setting changed");
 
   /*
@@ -2280,6 +2361,22 @@ let cleanup = () => {};
     refs.waiting ? "still says: reading the reference" : "filled in");
   check("the reference lists entries", refs.items >= 20,
     "entries " + refs.items + ", note " + JSON.stringify(refs.note));
+  /*
+    THE NOTE UNDER THE LIST: the number is spaced off.
+
+    On 22.08.2026 the live plugin showed "all of them,212" there, and with a
+    search "shown17". The Russian side of the literals table carried a trailing
+    space and the English side lost it: in one line it became a comma, in the
+    other it vanished. It went out in both copies, and no gate noticed - the
+    note was checked nowhere, it was only printed in the message beside it.
+
+    The check knows no language on purpose: the set is run over the Russian page
+    and over the English one. One thing is required - a space before the number,
+    and not a digit before the space.
+  */
+  check("the count in the note is spaced off from the words",
+    /[^\d\s]\s\d+$/.test(refs.note),
+    "note " + JSON.stringify(refs.note));
   check("the reference knows the functions of the parser",
     refs.names.indexOf("Sin") >= 0 && refs.names.indexOf("Cos") >= 0,
     "Sin " + (refs.names.indexOf("Sin") >= 0) +

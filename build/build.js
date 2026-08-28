@@ -513,6 +513,26 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.3.4', date: '24 August 2026', title: 'Palette icons, forms that open again, and the panel tidied up',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.4',
+    added: [
+      'Palette icons for every component the IDE puts on the palette: twelve in Lazarus, eleven in Delphi. The odd one out is TGraph - CrossGraph ships a Lazarus package only, so it has no Delphi palette entry to carry an icon. Until now they shared the default square and were told apart by name alone. Colour says what a component is for - parsing, calculation, timing, data, drawing - and the silhouette tells one from another at the size the palette actually shows them.',
+      'Both sets ship inside the packages, in the resource format each IDE reads by itself. Lazarus reads a standard resource rather than an .lrs one, so the package still does not drag in the LCL where the LCL is not wanted.',
+    ],
+    fixed: [
+      'Components could not be saved to a form and read back. A published read-only property of a class type is written by the streaming system as a NAME and read back as a reference to a component with that name, which does not exist. A form holding a TParser was written without complaint and refused to open afterwards.',
+      'Forms already saved by an earlier version kept failing on that same property. Not streaming it fixed new forms and left old ones broken, so the five sub-properties now accept what they are given and ignore it. An old form opens; a new one carries nothing to ignore.',
+      'A lone dot from the editor selection was taken for a formula and drew an empty curve. A line counts as a formula when something in it can yield a value - a letter or a digit - so pi and exp stay formulas, and punctuation on its own does not.',
+      'The ^ sign is called out where it means exclusive-or rather than a power. Written between two values it almost always means a power was intended, and the status line says: ^ is not a power - use x ** 2. The bar is narrow, so the note is kept to what the reader has to do and the whole sentence stays in its tooltip. Where the formula is already right, it stays quiet.',
+      'The settings window let the graphs behind it show through sharply. It blurs its backdrop now, the way the function panel already did.',
+      'Formula colours were lost in the report and in print: the browser drops colour by default, and colour is what ties a row of the report to a curve on the canvas.',
+      'With the window docked to the side, the function panel covered the row of graph buttons. Below a certain width the buttons move to the bottom of the panel instead.',
+      'The panel said the hotkey captures the selection; it opens the window. The wording of both the button and the shortcut now says what they do.',
+      'The count in the note under the reference list ran into the words before it: all of them,212 and shown17. A trailing space was carried on one side of the translation table and lost on the other.',
+    ],
+  },
+  
+  {
     tag: 'v1.3.3', date: '21 August 2026', title: 'The panel answers the notes, and the parser stops guessing',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.3',
     added: [
