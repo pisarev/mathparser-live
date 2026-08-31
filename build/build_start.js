@@ -36,7 +36,7 @@ const shellBlock = (lines) =>
 /* ─── the tracks ────────────────────────────────────────────────────────── */
 
 const TRACKS = [
-  ['Delphi', 'delphi', 'A package that installs into the palette, or two paths in the project.'],
+  ['Delphi', 'delphi', 'Two paths in the project options, and the IDE stays untouched.'],
   ['Lazarus', 'lazarus', 'Ready-made packages, opened and compiled from the IDE.'],
   ['Linux and FPC', 'fpc', 'The compiler and nothing else: no LCL, no LazUtils.'],
   ['The browser', 'web', 'The engine compiled to WebAssembly, computing on the machine of whoever opens the page.'],
@@ -102,32 +102,10 @@ ${gotcha('Why the Free Pascal line carries four switches', [
 ])}
 
     <h2 id="delphi">Delphi: into a project you already have</h2>
-    <p>Two ways. The first puts the components in the palette and is what most
-      people want; the second is three lines in the project options and leaves
-      the IDE untouched.</p>
+    <p>The library goes into a project through the compiler search path:
+      three lines in the project options, and the IDE stays as it was.</p>
 
-    <h3>With the palette</h3>
-${steps([
-  ['Build the two runtime packages first',
-   `<p><code class="frag">packages/delphi/crosspascal_parser.dpk</code>, then
-      <code class="frag">crosspascal_parserjit.dpk</code>. Open each and use
-      <b>Project, Build</b>. The design-time package requires both, and the IDE
-      does not build them for you: installing without them stops at
-      <code class="frag">E2202 Required package 'crosspascal_parser' not found</code>.</p>`],
-  ['Open the design-time package',
-   `<p><code class="frag">packages/delphi/crosspascal_parser_dsgn.dpk</code>. It contains the
-      registration unit and nothing else.</p>`],
-  ['Press Install',
-   `<p>A palette page named <b>CrossPascal</b> appears with the parser, the
-      calculator, the value list, and the threads. Drop <code class="frag">TMathParser</code>
-      on a form and it works from the Object Inspector.</p>`],
-  ['Add the library path once',
-   `<p>Tools, Options, Library, Library path - add <code class="frag">src</code> and
-      <code class="frag">jit</code>. Without it the IDE finds the components but the compiler
-      does not find the units.</p>`],
-])}
-
-    <h3>Without the palette</h3>
+    <h3>Into the project</h3>
     <p>Project, Options, Delphi Compiler, Search path: add <code class="frag">src</code>, and
       <code class="frag">jit</code> if you want the accelerator. Then create the parser in
       code as the samples do. Nothing is installed into the IDE, which is the

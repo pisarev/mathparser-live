@@ -54,10 +54,12 @@ a:focus-visible,button:focus-visible{ outline:2px solid var(--accent); outline-o
 .sheet{ max-width:74rem; margin:0 auto; padding:0 clamp(1.25rem,4vw,3.5rem) }
 .rule{ height:1px; background:var(--rule); border:0; margin:0 }
 
+
 .label{
   font:400 .6875rem/1 var(--mono); letter-spacing:.16em; text-transform:uppercase;
   color:var(--ink-soft); font-variant-numeric:tabular-nums;
 }
+
 
 .masthead{ display:flex; align-items:baseline; justify-content:space-between;
   gap:1.5rem; padding:1.75rem 0 1.5rem; flex-wrap:wrap }
@@ -67,6 +69,7 @@ a:focus-visible,button:focus-visible{ outline:2px solid var(--accent); outline-o
 .masthead nav{ display:flex; gap:1.75rem }
 .masthead nav a{ transition:color .18s }
 .masthead nav a:hover{ color:var(--accent) }
+
 
 .hero{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,6fr);
   gap:clamp(2rem,5vw,4.5rem); align-items:center; padding:clamp(3rem,7vw,6rem) 0 }
@@ -112,6 +115,7 @@ h1 em{ font-style:italic; color:var(--accent) }
 .btn.hollow{ border-color:var(--rule); color:var(--ink-soft) }
 .btn.hollow:hover{ border-color:var(--ink); color:var(--ink) }
 
+
 .plate{ background:var(--plate); border:1px solid var(--rule); position:relative }
 .plate svg{ display:block; width:100%; height:auto; aspect-ratio:1/1 }
 .plate .mm line{ stroke:var(--grid); stroke-width:.18 }
@@ -124,6 +128,7 @@ h1 em{ font-style:italic; color:var(--accent) }
 .plate::before{ top:-1px; left:-1px; border-right:0; border-bottom:0 }
 .plate::after{ bottom:-1px; right:-1px; border-left:0; border-top:0 }
 
+
 .caption{ display:flex; flex-direction:column; gap:.35rem; min-height:4.4rem;
   padding:.7rem .85rem; border-top:1px solid var(--rule) }
 .caption .fx{ min-width:0; font:400 .75rem/1.4 var(--mono); color:var(--ink);
@@ -135,6 +140,7 @@ h1 em{ font-style:italic; color:var(--accent) }
 .hero .caption{ min-height:0 }
 .hero .caption .fx{ -webkit-line-clamp:3 }
 
+
 .trace{ stroke-dasharray:var(--len); stroke-dashoffset:var(--len) }
 .js .trace{ stroke-dashoffset:var(--len) }
 .js .drawn .trace{ animation:ink var(--dur,3.4s) cubic-bezier(.33,.05,.2,1) forwards }
@@ -143,6 +149,8 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 @media (prefers-reduced-motion:reduce){
   .trace,.js .trace{ stroke-dashoffset:0 !important; animation:none !important }
 }
+
+
 
 .stack{ padding:clamp(2.5rem,5vw,3.75rem) 0 }
 .stack .head{ display:flex; justify-content:space-between; align-items:baseline;
@@ -159,8 +167,11 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .bom .what,.bom .dep{ font:400 .875rem/1.5 var(--mono); color:var(--ink-soft) }
 .bom .dep{ text-align:right }
 
+
 .layer{ display:flex; align-items:baseline; gap:.85rem; margin:0 0 .5rem }
 .layer .num{ font:400 .8125rem/1 var(--mono); letter-spacing:.14em; color:var(--accent) }
+
+
 
 .facts{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:clamp(1.5rem,4vw,3.5rem);
   padding:clamp(2.5rem,5vw,3.75rem) 0 }
@@ -168,6 +179,7 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
   letter-spacing:-.02em; font-variant-numeric:lining-nums tabular-nums; margin-bottom:.55rem }
 .fact .d{ display:block; font:400 .8125rem/1.5 var(--mono); color:var(--ink-soft) }
 .fact .i{ font-style:normal; color:var(--accent) }
+
 
 .methods{ padding:clamp(3rem,6vw,5rem) 0 }
 .methods .head{ display:flex; justify-content:space-between; align-items:baseline;
@@ -183,6 +195,8 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .row .val{ font:400 .875rem/1.4 var(--mono); color:var(--ink-soft);
   font-variant-numeric:tabular-nums; white-space:nowrap }
 
+
+
 .swap{ margin:2.5rem 0 0; display:grid;
   grid-template-columns:minmax(0,1fr) minmax(0,.85fr); gap:clamp(1.5rem,3vw,2.5rem);
   align-items:center }
@@ -194,6 +208,7 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .prio + .said{ margin-top:1.1rem }
 .swap pre .same{ color:var(--ink-soft) }
 .swap pre .diff{ color:var(--accent) }
+
 
 .atlas{ padding:clamp(3rem,6vw,5rem) 0 }
 
@@ -215,6 +230,7 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .band svg{ aspect-ratio:4/1 }
 .band .caption{ min-height:0 }
 .band .caption .fx{ -webkit-line-clamp:2 }
+
 
 .tool{ padding:clamp(3rem,6vw,5rem) 0 }
 
@@ -239,6 +255,8 @@ html:not(.js) .trace{ stroke-dashoffset:0 }
 .feats .k{ font:400 .8125rem/1.5 var(--mono); letter-spacing:.04em }
 .feats .v{ color:var(--ink-soft); font-size:.9375rem; line-height:1.5;
   text-align:justify; hyphens:auto; -webkit-hyphens:auto }
+
+
 
 .fits{ grid-column:1/-1; display:grid; gap:clamp(1.5rem,3vw,2.5rem); margin-top:2rem }
 .fits figure{ margin:0 }
@@ -268,6 +286,7 @@ pre .kw{ color:var(--accent) } pre .st{ color:var(--pen-green) } pre .cm{ color:
 .deeper a:hover{ padding-left:.5rem; color:var(--accent) }
 .deeper .t{ font-size:1.0625rem } .deeper .d{ color:var(--ink-soft); font-size:.9375rem }
 
+
 footer{ padding:2.5rem 0 4rem; display:flex; justify-content:space-between;
   gap:1.5rem; flex-wrap:wrap; align-items:baseline }
 
@@ -291,6 +310,7 @@ footer{ padding:2.5rem 0 4rem; display:flex; justify-content:space-between;
   .row .val{ margin-left:auto }
 }
 
+
 .doc{ padding:clamp(2.5rem,5vw,4rem) 0 }
 .doc-head{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
   gap:clamp(1.5rem,4vw,4rem); align-items:start; margin:0 0 3rem }
@@ -309,8 +329,10 @@ footer{ padding:2.5rem 0 4rem; display:flex; justify-content:space-between;
   hyphens:auto; -webkit-hyphens:auto }
 .doc p.wide{ max-width:none }
 
+
 .doc code{ font:400 .9em/1 var(--mono); overflow-wrap:anywhere }
 .doc .note{ color:var(--ink-soft) }
+
 
 table{ width:100%; border-collapse:collapse; margin:0 0 1.5rem;
   font-variant-numeric:tabular-nums }
@@ -324,12 +346,14 @@ td .m{ color:var(--accent) }
 td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
 .tw{ overflow-x:auto }
 
+
 .gotcha{ border-left:2px solid var(--pen-amber); background:var(--plate);
   padding:1.1rem 1.3rem; margin:0 0 1.5rem }
 .gotcha p{ margin:0; max-width:66ch }
 .gotcha p + p{ margin-top:.6rem }
 .gotcha .k{ font:400 .6875rem/1 var(--mono); letter-spacing:.14em;
   text-transform:uppercase; color:var(--pen-amber); display:block; margin-bottom:.6rem }
+
 
 .fx-groups{ display:grid; grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));
   gap:1.75rem 2.5rem }
@@ -342,6 +366,7 @@ td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
   .doc-head{ grid-template-columns:1fr }
   .doc-head h1{ max-width:none }
 }
+
 
 .prio{ margin:1.5rem 0 0; border:1px solid var(--rule); background:var(--plate) }
 .prio .bar{ display:flex; flex-wrap:wrap; gap:.6rem 1rem; align-items:baseline;
@@ -382,6 +407,8 @@ td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
   cursor:pointer; transition:all .15s }
 .prio .pres button:hover{ color:var(--ink); border-color:var(--ink) }
 
+
+
 .log{ padding:clamp(2.5rem,5vw,4rem) 0 }
 .log .head{ display:flex; justify-content:space-between; align-items:baseline;
   gap:1.5rem; margin:0 0 1.75rem; flex-wrap:wrap }
@@ -406,6 +433,8 @@ td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
 @media (max-width:56rem){ .rel ul{ columns:1 } }
 @media (max-width:48rem){ .rel{ grid-template-columns:1fr } }
 
+
+
 .steps{ counter-reset:step; list-style:none; margin:1.25rem 0 2rem; padding:0 }
 .steps li{
   counter-increment:step; position:relative;
@@ -423,6 +452,7 @@ td.num{ text-align:right; font:400 .875rem/1.5 var(--mono); white-space:nowrap }
 }
 .steps p{ margin:0 0 .5rem; color:var(--ink-soft); text-align:justify; hyphens:auto }
 .steps pre{ margin:.6rem 0 0 }
+
 
 pre.sh{
   font:400 .875rem/1.7 var(--mono); background:var(--plate);
@@ -781,6 +811,17 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
     </div>
     <article class="rel">
       <div class="when">
+        <a class="tag" href="https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.5">v1.3.5</a>
+        <span class="date">29 August 2026</span>
+      </div>
+      <div class="what">
+        <h3>Curves that leave the window, and a panel that remembers what you did</h3>
+        <p class="kind">Added</p><ul><li>Redo. Undo has been there for a while; what it undid was gone for good. Ctrl+Y or Ctrl+Shift+Z now puts it back, and the redo trail is dropped the moment you change something else - the same rule every editor follows.</li><li>A button that fits the graph to the screen. It takes the widest and tallest the curves actually go and sets the view to that, so a formula whose values live far from the origin no longer needs the view dialled in by hand.</li><li>A button that hides the list of functions and brings it back. Docked to the side the list takes most of the panel, and until now it could only be scrolled away, not put aside.</li><li>Bookmark cells can be copied and pasted one at a time. The ten cells inside the panel are unchanged; what is new is that a single cell can be taken out through the clipboard - into a mail, a file, another machine, another person - and put into any cell on the other end, not only the one it came from.</li></ul>
+        <p class="kind">Fixed</p><ul><li>A curve that ran past the top or bottom of the window came apart into pieces. Every excursion past an edge started a new piece, so sin(x)*3 in a window one unit high arrived in seven pieces instead of one, and there was no telling those breaks from a real discontinuity. A break is now decided by the curve itself - a step that lands past the opposite edge, which only a pole does - so 1/x still breaks at zero and a continuous curve stays whole.</li><li>A curve leaving the window stopped short of the edge instead of running into it. The point past the edge was thrown away, and with nothing to draw towards, the line ended early.</li><li>In the report, every formula colour dot was drawn in the pen colour, so with multi-coloured curves the dots did not match the curves they stood for.</li><li>Extremes were marked at the nearest grid node rather than at the actual turning point. With x*x the minimum sits exactly on a node and the error was invisible; off a node the mark was visibly beside the peak.</li><li>The note under the reference list is no longer glued to the list, and reads the same way for a curve, a bar chart, an area and a boundary.</li><li>The Color property could be pushed off the bottom of the component designer form at larger font sizes: the row count was already at its maximum, so the last property had nowhere to go.</li><li>Moved to another machine, the panel looked for its page in the wrong folder and fell back to the old window without saying so. It now writes down which file it looked for and did not find.</li><li>The library and the page check each other version at startup. A build that pairs a new library with an old page is reported instead of running.</li><li>Measuring text width is safe to call from several threads at once. The functions shared one screen device context between them.</li><li>Under FPC, a guard on the angle before sin and cos stops the geometry from raising an invalid operation where Delphi returned a number.</li><li>Under FPC 3.2.2, clipping a segment could return the wrong points. The cause is a compiler defect - a chain of array concatenations puts the last element in the wrong place - and the fix splits the chain into two steps rather than waiting for the compiler.</li></ul>
+        <p class="kind">Changed</p><ul><li>The panel opens on Alt+B, and building the selection is on Alt+Shift+B. It used to be Alt+G, and on any machine with Chrome installed that combination now belongs to Gemini system-wide: the plugin never sees the key, the panel does not open, and it looks as though the plugin is broken. If you had rebound the key yourself, Notepad++ keeps your choice.</li><li>The panel title names both shortcuts and shortens itself as the panel gets narrower rather than cutting the text off. When only one shortcut fits, the one that stays is the capture: the panel can be opened with the mouse and from the menu, the capture cannot.</li><li>The two clipboard buttons say what they do - copy state to the clipboard and paste state from the clipboard. They were labelled as though they saved and restored the state inside the plugin, which is what the bookmarks do.</li></ul>
+      </div>
+    </article><article class="rel">
+      <div class="when">
         <a class="tag" href="https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.4">v1.3.4</a>
         <span class="date">24 August 2026</span>
       </div>
@@ -788,6 +829,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>Palette icons, forms that open again, and the panel tidied up</h3>
         <p class="kind">Added</p><ul><li>Palette icons for every component the IDE puts on the palette: twelve in Lazarus, eleven in Delphi. The odd one out is TGraph - CrossGraph ships a Lazarus package only, so it has no Delphi palette entry to carry an icon. Until now they shared the default square and were told apart by name alone. Colour says what a component is for - parsing, calculation, timing, data, drawing - and the silhouette tells one from another at the size the palette actually shows them.</li><li>Both sets ship inside the packages, in the resource format each IDE reads by itself. Lazarus reads a standard resource rather than an .lrs one, so the package still does not drag in the LCL where the LCL is not wanted.</li></ul>
         <p class="kind">Fixed</p><ul><li>Components could not be saved to a form and read back. A published read-only property of a class type is written by the streaming system as a NAME and read back as a reference to a component with that name, which does not exist. A form holding a TParser was written without complaint and refused to open afterwards.</li><li>Forms already saved by an earlier version kept failing on that same property. Not streaming it fixed new forms and left old ones broken, so the five sub-properties now accept what they are given and ignore it. An old form opens; a new one carries nothing to ignore.</li><li>A lone dot from the editor selection was taken for a formula and drew an empty curve. A line counts as a formula when something in it can yield a value - a letter or a digit - so pi and exp stay formulas, and punctuation on its own does not.</li><li>The ^ sign is called out where it means exclusive-or rather than a power. Written between two values it almost always means a power was intended, and the status line says: ^ is not a power - use x ** 2. The bar is narrow, so the note is kept to what the reader has to do and the whole sentence stays in its tooltip. Where the formula is already right, it stays quiet.</li><li>The settings window let the graphs behind it show through sharply. It blurs its backdrop now, the way the function panel already did.</li><li>Formula colours were lost in the report and in print: the browser drops colour by default, and colour is what ties a row of the report to a curve on the canvas.</li><li>With the window docked to the side, the function panel covered the row of graph buttons. Below a certain width the buttons move to the bottom of the panel instead.</li><li>The panel said the hotkey captures the selection; it opens the window. The wording of both the button and the shortcut now says what they do.</li><li>The count in the note under the reference list ran into the words before it: all of them,212 and shown17. A trailing space was carried on one side of the translation table and lost on the other.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -798,6 +840,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The panel answers the notes, and the parser stops guessing</h3>
         <p class="kind">Added</p><ul><li>A button on the editor toolbar and the shortcut spelled out in the panel title. The icon is drawn in code rather than shipped as a picture; that the button really appeared is proved by counting the buttons with the plugin and without it, because the editor answers TRUE to the request either way.</li><li>A reference of signs and functions behind its own button, every entry described. The list is generated from the registry of the parser itself and checked against it, so the reference cannot contain a name absent from the name table of the parser, or omit one present there.</li><li>Bookmarks became split buttons: the main part restores, the arrow offers overwrite and clear. An empty cell has no arrow.</li><li>Colour, width and dash per curve. The circle in the formula row now shows what the curve is actually drawn with rather than a shade picked by position.</li><li>A formula can be edited in place by double-clicking it, undo included.</li><li>In polar mode the angle range is shown only there, with buttons for one, two, three and five turns.</li></ul>
         <p class="kind">Fixed</p><ul><li>Pasting a table read ONE table while a selection could hold several, and the point sets silently merged into one. A blank line between tables now starts a new row, columns past the second are ignored, and selecting a table in the editor does what pasting does.</li><li>The sign of a number did not reach the key of the template cache, so X + 400 and X - 400 shared one key and the second was evaluated by the script of the first: after X - 400 the expression X + 400 answered -398.5 instead of 401.5.</li><li>Sin(2) ** 3 was evaluated as Sin(8) and Ln(100) // 2 as Ln(10): the power and root signs after a function call went inside its brackets. The answer was wrong rather than refused, which is the harder case to notice.</li><li>An exponent with a sign did not read at all - 2.5E-2 and 3E+2 were refused - and a name E cut 1E3 in half. A number is now indivisible to the tokeniser.</li><li>Names that read as numbers (E3, X1, $FF, &17, %1010) were silently swallowed by number reading, differently on FPC and on Delphi. They are refused at registration now.</li><li>A per cent sign in text written by a person turned an ordinary parse error into a conversion error.</li><li>Extremum marks were thinned for the zoom they were computed at, so zooming out fused the arrows into a solid block - a square instead of an arrow. The rule now applies when drawing as well.</li><li>Thirty five English messages of the parser were rewritten and one was added.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -808,6 +851,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The panel opens again</h3>
         
         <p class="kind">Fixed</p><ul><li>The 1.3.1 plugin crashed Notepad++ the moment the panel was opened, and the download has been removed. A record that the plugin hands to the editor was laid out four bytes short of what the editor expects, so the editor read the module name from the wrong place and dereferenced whatever was there. The record is a C structure, and the directive that keeps it C-compatible was cancelled by a later one; on FPC 3.3.1 the two agree, on the 3.2.2 the README asks for they do not. 1.3.1 was the first release built with the compiler the README names, which is why the fault surfaced there.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -818,6 +862,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The recipe runs on a machine that is not mine</h3>
         
         <p class="kind">Fixed</p><ul><li>The Delphi build looked for the compiler in one fixed folder and only ever found RAD Studio 13. It reads the installed versions from the registry now, so 11 Alexandria and newer build as the README says. Set BDS_BIN to pin a particular installation.</li><li>The build and install scripts asked for pwsh. PowerShell 7 ships with no Windows at all, so the recipe stopped on its first command for anyone who had not installed it separately. The scripts run under the PowerShell that comes with Windows, and the instructions say powershell now, with the execution-policy switch that a downloaded script needs.</li><li>The Notepad++ plugin opened with different settings depending on which of the two builds you installed: the zoom step was 0.5 in the Delphi build against 0.1 in the Lazarus one, and six other numbers differed with it. Both builds now carry the same defaults and seed them into the component before anything saved is read.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -828,6 +873,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>A table becomes points, and the points become a formula</h3>
         <p class="kind">Added</p><ul><li>A selection in the editor is plotted while you are making it. Select a pair of columns in a csv and the points appear on the canvas at once; the next selection replaces them, so nothing piles up. Alt+Shift+G keeps what is shown for good, as an ordinary row of the list.</li><li>Text with numbers becomes a series of points. The separator is worked out from the data - a semicolon, a tab, a comma, a space - and a decimal comma is not mistaken for one. A header row names the series. Points are drawn as points, not joined by a line: a line between measurements would draw values where nothing was measured.</li><li>A formula is fitted to those points: a straight line, a polynomial of the second to the fifth degree, exponential, power or logarithmic. The result is an ordinary formula string, so everything already there works on it - tracing, extrema, intersections, the report, bookmarks, the share link.</li><li>The caveats stand beside the answer rather than in the documentation. R^2 grows with the number of coefficients by itself; the exponential, power and logarithmic fits are computed through logarithms, so it is the deviation of the logarithms that is least; least squares is sensitive to outliers.</li><li>Undo. Ctrl+Z, or the button next to the bin, takes back the last destructive action - clearing the panel, removing a curve or a series, a fit. Twenty steps, and the tooltip names what will be undone.</li><li>The panel says why it is empty. Without the WebView2 runtime it used to stay blank with no explanation; now it names the reason and what to do about it.</li></ul>
         <p class="kind">Fixed</p><ul><li>The colour you picked is the colour the curve is drawn in. While "a colour of its own for every formula" was set, the chosen colour was not used at all, and the control looked as though it worked. Picking a colour now turns that mark off, and the switch for it stands in plain sight.</li><li>A bookmark slot stays occupied after you restore from it, and you can return to the same bookmark as many times as you like. Restoring used to free the slot, so click after click went remember - restore - remember. Ctrl+click writes over a slot, Shift+click clears it, and both gestures are written in the tooltip.</li><li>Printing puts the whole report on paper, not the part that happened to be visible. The report lived in a scrolling window and was clipped along with the scrollbar; the graph is printed too, on a page of its own.</li><li>Clear stands at the end of the button row, behind a separator, with undo before it. It used to sit between Print and Report - three neighbours, two of which show something and the third wiped the list without a question. It now clears the whole panel, series included, and the caption says so.</li><li>A formula whose values run off to infinity no longer brings the browser demo down. X // Sin (X) beside other curves made the build fail outright: near the zeros of the sine the chord between neighbouring nodes came out infinite, and the search for touches let it through - both of its gates compare on "greater", and infinity on the right lets everything past. The plugin was never affected: there the intersections are computed by the engine, and in the browser they are written again in JavaScript.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -838,6 +884,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>An extremum is a property of the function, not of the sampling</h3>
         
         <p class="kind">Fixed</p><ul><li>The extremum marked on a curve was the nearest computed point rather than the extremum itself. Three things followed from that, and a reader of the plugin noticed all three: for y = x*x the answer was not zero and did not agree with the value the report printed; the mark moved when the window or the quality changed, because the grid of computed points moved with them; and raising the accuracy brought the answer closer without ever reaching it. The vertex of the drawn polyline now only opens the search - the extremum itself is found on the function, by ternary search inside the bracket the vertex gives. Measured on a shifted parabola, a shifted sine and a cusp: the answer lands within about a hundred-millionth, and it is the same answer at two different zooms.</li><li>A parabola tested at a symmetric window passed while all of this was broken, because zero fell exactly on a grid point and the right answer came out by alignment rather than by calculation. The checks that guard this now put the extremum deliberately off the grid, and ask for the same answer at two zooms rather than one.</li><li>The build button carried a word next to its icon. The word is gone; the button keeps its name for the tooltip and for a screen reader. In a docked panel this also takes pressure off the width of the row, and a row that wraps is what used to make the panel rebuild itself.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -848,6 +895,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The libraries build on older Delphi</h3>
         <p class="kind">Added</p><ul><li>The parser and the plotting engine build on Delphi 10.2 Tokyo through 13; the plugin builds on 11 Alexandria through 13. Every version in that range is a real installation rather than an expectation: before a release each one compiles the units one at a time, and the range printed in the README moves only when that run agrees. The plugin stops at 11 for a reason that is not in our code - it reaches WebView2 through a unit Embarcadero began shipping in the RTL with that version, and on 10.2 through 10.4 the unit is simply absent.</li></ul>
         <p class="kind">Fixed</p><ul><li>A version test stopped the build on every Delphi up to and including 11. One unit chose between two shapes of an iterator callback by testing a Free Pascal version constant, and the test sat inside a branch Delphi never takes. That is not as safe as it looks: Delphi evaluates the expression regardless of the branch, meets a constant it has never heard of, and stops. The choice is made by generation symbols now, which either exist or do not and need nothing evaluated to find out.</li><li>An array literal bound to the wrong type on Delphi before 12. Until that version the dynamic string array and the generic array of string are two distinct types rather than one, so a literal passed to a parameter taken by reference bound to the type the call did not want. The two calls in the parser and one declaration in the plugin build their array in a variable now.</li><li>The token handed back by GdiplusStartup changed type in the RTL between 10.3 and 10.4, from a plain unsigned long to a pointer-sized one. It is taken by reference, so the mismatch was an error rather than a warning, and the plotting engine would not build on the two older versions. The variable is declared by a numeric test on the compiler version now.</li><li>A form knows its own pixels per inch, but that property is protected until Delphi 11, and the dark-theme code read it directly. An accessor class opens it, and the one line now works on every version without a version test of any kind.</li><li>A conditional symbol with a dot in its name does not ask what it appears to ask. Delphi cuts the name at the dot, so the symbols naming the point releases of the 10 line all resolve to the same thing and answer yes as far back as 10 Seattle. Measured on a 10.2 installation, all three of them answer yes. Tests that have to tell those versions apart use the numeric compiler version instead.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -858,6 +906,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The component survives being dropped on a form</h3>
         
         <p class="kind">Fixed</p><ul><li>Dropped on a form under Free Pascal, the graph component could take the application down with it. The component drives itself from a precise timer, and the two compilers give that timer different lives: under Delphi it is a window timer whose handler runs in the main thread, under Free Pascal the same class runs a thread of its own and calls the handler there. So the handler painted from a worker thread while the main thread painted the same control, and the pen cache of the LCL does not survive that. Measured before the fix: six crashes in ten runs; after it: none in a hundred and fifteen. The handlers no longer do the work - each posts a message to its own window and the work happens in the main thread. The contract of the timer is now written down in the header of its unit, so the next reader does not have to discover it from a crash.</li><li>The component came up black on a form under Lazarus. Under the LCL the default colour of a control is not a colour at all but an instruction to ask the environment for one, and an off-screen bitmap has no environment to ask: the request resolved to black, while the same line under Delphi produced the ordinary window colour. The buffer is filled with a resolved colour now, and the two fonts the component owns are given explicit defaults instead of inheriting the same uncertainty.</li><li>The packages compiled and then did nothing: the components never reached the palette. Three things were missing at once - none of the packages declared itself usable at design time, eight units registered components without saying so in the package description, and the parser package declared no dependencies at all, so the IDE would not rebuild without the unit that provides the registration interface. Any one of them alone leaves the same symptom, so all three are fixed together. Checked the only way that means anything: by installing the packages into an IDE and placing a component on a form with the mouse.</li><li>Pasting into the formula list did nothing in the Delphi build of the plugin. The panel is a page inside the plugin, and text pasted from the clipboard has to travel from the host to that page; the host recognised only its own saved state and dropped everything else on the floor. Both builds now decide the same way - the clipboard either holds a saved state, which is decoded and checked before it is trusted, or it holds plain text, which is handed to the page as text. The two builds are fed the same nine cases and required to answer identically, in either direction.</li><li>A step of the mouse wheel could be lost. The flag saying which way to zoom was written by the main thread and read - and cleared - by the timer thread, so a click that landed between the reading and the clearing vanished without a trace. Both ends are in the main thread now.</li><li>A unit the plugin needs was missing from the published composition, so the Delphi build could not be built from a fresh clone at all. The same class of omission had happened once before with another unit, and the warning about it was written down in the very file where it happened again. It is now caught by a check rather than by a reader.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -868,6 +917,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The docked panel stops redrawing itself</h3>
         
         <p class="kind">Fixed</p><ul><li>Docked in a side panel, the plugin redrew its picture about twice a second while nobody touched it. The status line at the bottom has little room in a narrow panel, so its text wrapped: "ready" took one line, the report about the points took two. That changed the height of the bottom bar, the canvas lost and regained the same 64 pixels, the size observer read it as a real resize and asked for a rebuild, and the rebuild changed the text back. Measured on a docked panel: 36 rebuilds in 20 seconds of an untouched window, 437 ms of computation each. Now none, while a real resize still rebuilds. The status line keeps to one line and holds a fixed share of the row, so nothing it displays can move the layout. A floating window is wide enough that the wrap never happens, which is why the report named the docked panel and not the floating one.</li><li>The component that does the computing kept a window on screen underneath the page and painted nothing into it. Every time the container resized the panel, that window was told to repaint and left standing whatever had been there. Measured: seven such repaints for six resizes of a docked panel, not one of them drawing a pixel. It is off the screen now while the page draws; the computation is untouched, and results still arrive in that window from the worker threads.</li><li>The graph component painted outside the normal repaint cycle. An invalidation called the painting routine directly, which left the window still invalid, so the system sent a real repaint afterwards and the picture was drawn twice with the background erased in between; results from the worker threads went to the screen the same way, out of turn; and the tracing line was drawn over the buffer rather than into it, so it vanished at the next repaint. Now an invalidation marks the window and the system repaints once, the tracing line lives in the buffer, and the control declares itself opaque - it covers every pixel it owns, so erasing the background under it was only a flash.</li><li>A docking panel whose window was recreated stayed registered with Notepad++ under the old handle, and the editor had nothing live to put back into the dock. Registration now happens on every window creation, as the modeless registration already did. Three docking notifications that were declared and never handled - dropped after dragging, switched in, switched off - are handled as well.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -878,6 +928,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>Thirty-two bits, a package that asks for nothing, and a defect the accelerator hid</h3>
         <p class="kind">Added</p><ul><li>Thirty-two bits, on both compilers. Windows i386 joins win64 and linux64, and the whole battery runs there: sixteen test programs on Free Pascal 3.2.2, the documentation samples, the packages themselves. It is a separate installation of the compiler rather than a switch, because Free Pascal will not target i386 from a host whose Extended is a Double - and on Win64 it is.</li><li>The Lazarus packages no longer ask for the LCL. They are built with NOFORMS and NOGRAPHICS, so a console program links against them with nothing else in its uses clause - no Interfaces, no widgetset. Delphi is untouched by this: it builds from the sources, where neither define is set. Two features step aside for it, and the README says which and how to get them back.</li><li>Project files for the eight documentation samples. Open any of them in Lazarus and build - that is the whole recipe. They were written earlier but never reached a release: the slicer did not carry the extension, so the files existed and travelled nowhere.</li></ul>
         <p class="kind">Fixed</p><ul><li>The accelerator got the order wrong when a function call stood on the right of a division. Reading the right operand consumed the rest of the term instead of one step, so 6 / cos(x) / 16 was evaluated as 6 / (cos(x) / 16), and x / sqr(y) * y as x / (sqr(y) * y). Only a call was affected - with a variable or a constant there the fold stayed left to right, which is why it hid. On x86-64 the emitter takes such formulas and the emitter is right, so the wrong answers surfaced only where there is no emitter. Checked by comparing three thousand random formulas against the interpreter on every target: zero disagreements.</li><li>The differential check that should have caught it was comparing nothing. It skipped every formula the accelerator declined, and off x86-64 that is every formula there is - the check reported three thousand compared and zero disagreements while comparing none of them. It now reads the level off the interpreter counter, and the floor it guards is a real number again.</li><li>The value record was a different size on 32 bits: twenty bytes instead of twenty-four, with the payload four bytes in rather than eight. The compiled script format carries that record verbatim, so a script built on 64 bits would not have loaded on 32. The directive that was supposed to keep the layout identical sets a limit on alignment, not a size, and on i386 nothing in the record asked for eight. It is now padded out by hand, and the layout is the same everywhere.</li><li>The package used to hand a unit of its own to anyone who installed it, under a name the system already uses. On Windows Messages comes from the runtime, and ours stood in front of it; the LCL does not survive that, and a project that used both stopped with a message naming a unit it could see. The stand-in is now added only where the system has no such unit at all.</li><li>Installing the accelerator package rebuilt forty-one units of the parser into a second directory of its own. The two sets of compiled units then disagreed, and a sample that used both stopped on a unit that was lying right there. The accelerator now uses what the parser package built, as it was always meant to: six units instead of forty-seven.</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -888,6 +939,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>Three ways into an evaluation, and the mask now covers all of them</h3>
         
         <p class="kind">Fixed</p><ul><li>Compiled code ran without the parser's exception mask. Compile a script with CompileScript and run the compiled object - which is what the accelerator documentation recommends for evaluating from several threads - and division by zero raised where the library promises infinity. Two of the three ways into an evaluation had been covered in 1.0.7; this was the third, and the one the documentation points at</li><li>A parser evaluated from inside another parser ignored its own ExceptionMask. The test for "is this the outermost evaluation" asked whether any frame existed in the thread rather than whether the mask differed from its own, so a nested parser silently inherited the mask of whoever called it</li><li>Arming a loop guard inside another one switched off the outer cancellation. A nested ArmLoopGuard without a flag of its own wrote nil over the flag that was there, so an owner asking the work to stop went unheard for the whole of the inner run. Budgets may be replaced by an inner run; cancellation may not</li><li>ExceptionMask was documented as yours to narrow and declared protected, which put it out of reach of the code that was supposed to narrow it. It is public now</li><li>Looking a name up in the parser tables converted the string to lower case twice per lookup, once for the hash and once for the comparison. Same string, same result, two trips to the memory manager. Deriv went from fourteen allocations per call to eleven and from 4.05 to 3.40 microseconds</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -898,6 +950,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>Three pieces of thread state that belonged to somebody else</h3>
         <p class="kind">Added</p><ul><li>ArmLoopGuard and DisarmLoopGuard arm the loop guard in a pair, and disarming puts back whatever was there before. The guard lives in thread variables, but a run does not: a budget that ran out is recorded as a negative number and used to outlive the run that spent it. Whatever came next in that thread inherited the refusal - a different parser, a later button press, code that never armed a guard at all - and was stopped on an honest ten turn loop. Arming nests too, so a formula that calls Parse may set a budget of its own</li></ul>
         <p class="kind">Fixed</p><ul><li>The floating point exception mask was installed by the parser constructor, so it belonged to the thread that happened to create the object. Evaluate on a shared parser from a worker thread - the arrangement the plotting component uses - and division by zero raised EZeroDivide instead of answering infinity. In the other direction, a living parser held the mask for the whole program, and neighbouring code in the same thread quietly stopped getting its own exceptions. An evaluation now installs the mask and hands the caller's back, and the accelerator does the same around machine code. If you share one parser between threads, or if your program narrows the mask for its own arithmetic, this is the release that makes the documented behaviour true for you</li><li>The lock around Deriv and Parse was one lock for every parser in the process. Four threads with four unrelated parsers queued up behind each other on any formula containing a derivative. It is now a lock per parser, and Parse holds it only while it compiles: running the compiled script under the lock meant holding it across arbitrary user code, which is how deadlocks are made</li><li>The plotting engine has never built on Free Pascal 3.2.2 and cannot: a geometry dependency sorts points with an anonymous comparer, and function references arrived in 3.3.1. The parser next door does build with 3.2.2. Both facts are now stated - in the crossgraph README, and by the Linux build script, which says so instead of stopping with a syntax error in the middle of a file you did not write</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -908,6 +961,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>A hidden button is hidden for real</h3>
         
         <p class="kind">Fixed</p><ul><li>The two buttons that send the report into the editor still showed up in the live demo, where there is no editor to send anything to. 1.0.5 taught the page to ask the host first, and the host answers correctly - but the buttons were being hidden with the hidden attribute alone, and that attribute is only a display:none from the browser stylesheet. The panel sets display:grid on its buttons, which wins. Measured on the published demo: hidden was true and the button was still thirty pixels wide</li><li>And underneath that, a second one it had been hiding. The panel asks the host whether there is an editor, and the Lazarus host answered in the same reply it uses to hand back the previous session - so whenever the panel opened with work in it, which is nearly always, the answer never arrived at all. It was invisible while the buttons were showing anyway. The greeting is now its own message and goes out first</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -918,6 +972,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The library builds with Free Pascal 3.2.2 again, and the Linux matrix says so</h3>
         <p class="kind">Added</p><ul><li>Free Pascal 3.2.2 builds the library again. Function references arrived in 3.3.1, so on 3.2.2 the iterator callbacks are method pointers instead - you pass a method where you would otherwise pass an anonymous function, and nothing else changes</li><li>Nine functions 3.2.2 lacks in its Math unit - ArcCot, ArcCotH, ArcCsc, ArcCscH, ArcSec, ArcSecH, CotH, CscH, SecH - travel with the library, taken verbatim from the 3.3.1 runtime so the values agree to the last bit</li><li>MathFamilyTest guards that whole family by contract rather than by a table of numbers: a reciprocal multiplied by its base is one, an inverse returns the argument of the direct function, and ArcCotan answers in the branch it promises</li><li>The README says what the matrices run, including which two units ask for the LCL and how to switch them off</li></ul>
         <p class="kind">Fixed</p><ul><li>Two accelerator tests and the thread-safety sample died on Linux before reaching their first line: on Unix the thread driver has to be the FIRST unit, and Classes standing ahead of it was enough to break that</li><li>A test compared a bound against Double(High(NativeInt)), which reinterprets the bits rather than converting the value - 0x7FFFFFFFFFFFFFFF read as a number is NaN. The comparison was silently against garbage wherever the compiler took the cast literally</li><li>The accelerator now says why it declined machine code even when the interpreter picked the work up, so the contract about wide Extended can be checked at all</li><li>The Linux test script looks for the widgetset folder instead of naming one, so a Lazarus built with gtk2 no longer reports a missing Interfaces unit</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -928,6 +983,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>The plugin reads the formula under the mouse, and sends the report back into the editor</h3>
         <p class="kind">Added</p><ul><li>The build that ships - the Lazarus one - picks the formula up from the editor: point at a line and the curve appears, select an expression and the selection wins over the line. Only the Delphi build did that before, and the Delphi build is not what ships</li><li>The report travels back the other way: one button opens it in a new tab, another drops it at the caret</li><li>It leaves as Markdown with the curve embedded as SVG - text, so it survives in a text editor, and still a drawn curve wherever Markdown is rendered</li><li>The panel keeps one slot for whatever the editor offers, so pointing around a file does not fill the list with formulas nobody asked for</li><li>The line under the cursor is compiled by a parser the plugin keeps for that alone, in the thread the editor calls from: compiling on the parser that is drawing the graph is outside the documented thread-safe subset</li></ul>
         <p class="kind">Fixed</p><ul><li>The README said to select an expression and press Alt+G, which was never how it worked: the formula is taken from under the mouse pointer, and Alt+G only opens the panel</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -938,6 +994,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>An Exit reaches the evaluation it belongs to, and the thread-safety contract stops overpromising</h3>
         <p class="kind">Added</p><ul><li>A routing test suite for Exit: recursion, a chain through one foreign parser, a chain through two, an Exit owned by the parser in the middle, the legacy constructor inside and outside an evaluation</li><li>A README section that states the thread-safety contract in full, including the one rule the previous text left out: every simultaneously active evaluation needs script storage of its own</li><li>The plugin carries version information and unpacks the way Plugins Admin expects, so it can be listed in the Notepad++ plugin catalogue</li></ul>
         <p class="kind">Fixed</p><ul><li>A parser standing between an Exit and the evaluation it belongs to swallowed it: with A calling B and B calling back into A, the Exit raised in A ended up as the result of B, and A quietly finished a different sum. The exception now carries its owner, and only the evaluation it names may take it</li><li>Looking for the enclosing evaluation moved off the path of an ordinary formula: it is asked only when an exception actually appears</li><li>The package descriptions said "Copyright Yuriy Pisarev" where the repository is MIT, and carried a version unrelated to the product</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -948,6 +1005,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>One parser, many threads: Exit belongs to its own evaluation</h3>
         <p class="kind">Added</p><ul><li>A thread-safety test that pins down who owns an Exit: parallel roots, recursion, two parsers in one thread, a notification that starts its own evaluation</li><li>The loop guards are documented: a README section with a compiled-and-run example, and the exact scope - guards belong to the thread and are set at the root of an evaluation</li></ul>
         <p class="kind">Fixed</p><ul><li>Exit inside a formula answered to the thread scheduler: the nesting depth lived in a field shared by every thread using the parser, so a parallel Exit escaped as an exception and a lost update could leave Exit broken until another race repaired it - the depth now lives in a frame on the stack of the call</li><li>Exit inside brackets now ends the whole evaluation in both evaluation modes: 99 + (Exit(42)) is 42 everywhere, where the evaluate-up-front mode used to answer 141</li><li>The plugin archive is reproducible: repacking the same content gives the same checksum</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -958,6 +1016,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
         <h3>Interruptible loops and per-system formula sheets</h3>
         <p class="kind">Added</p><ul><li>A loop guard: a break flag and a turn budget, both off by default - a formula that never ends becomes a formula error, not a frozen tab or a killed worker thread</li><li>Unwind descriptions for generated x86-64 code on Windows: an exception thrown through it reaches the handler instead of taking the process down</li></ul>
         <p class="kind">Fixed</p><ul><li>A deadlock on the first parse from a worker thread: the smart cache sent a synchronous window message across threads</li><li>Each coordinate system keeps a formula sheet of its own, the way the classic window always did, and a deliberately emptied sheet survives a reload</li><li>The intersection finder merged genuinely distinct neighbouring crossings as duplicates and silenced a fast curve as an indistinguishable stretch</li><li>Bulk evaluation fills the answers or says it did not; a formula the accelerator declines falls back to the ordinary parser</li><li>The plugin archive shrank from 9.6 MB to 1.4 MB: debug information no longer ships inside the library</li></ul>
+        
       </div>
     </article><article class="rel">
       <div class="when">
@@ -967,6 +1026,7 @@ Jit := TJitParser.Create(<span class="kw">nil</span>);
       <div class="what">
         <h3>First public release</h3>
         <p class="kind">Added</p><ul><li>MathParser: parser, flat bytecode, interpreter, shape cache, 163 callable functions</li><li>The accelerator: x86-64 machine code with an automatic fall back to the interpreter</li><li>CrossGraph: a plotting engine and a visual component for Delphi and Lazarus</li><li>A plugin for Notepad++, built with Lazarus and Free Pascal - <a href="https://github.com/pisarev/graphbuilder-npp/releases/latest">ready to download</a></li><li>A live demo that runs the real engine in the browser, compiled to WebAssembly</li><li>Reference pages for syntax, the accelerator and the limitations</li><li>Build matrix across Delphi win32 and win64, FPC on Windows and Linux</li></ul>
+        
         
       </div>
     </article>

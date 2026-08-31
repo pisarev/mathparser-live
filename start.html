@@ -467,7 +467,7 @@ pre.sh .cm{ color:var(--ink-soft) }
 
     <h2>Pick your way in</h2>
     <div class="deeper">
-      <a href="#delphi"><div class="t">Delphi</div><div class="d">A package that installs into the palette, or two paths in the project.</div></a>
+      <a href="#delphi"><div class="t">Delphi</div><div class="d">Two paths in the project options, and the IDE stays untouched.</div></a>
       <a href="#lazarus"><div class="t">Lazarus</div><div class="d">Ready-made packages, opened and compiled from the IDE.</div></a>
       <a href="#fpc"><div class="t">Linux and FPC</div><div class="d">The compiler and nothing else: no LCL, no LazUtils.</div></a>
       <a href="#web"><div class="t">The browser</div><div class="d">The engine compiled to WebAssembly, computing on the machine of whoever opens the page.</div></a>
@@ -528,40 +528,10 @@ fpc -MDelphi -dNOFORMS -dNOGRAPHICS -Fu"../../src/compat" -Fu"../../src" -Fi"../
    <code class="frag">tests/build_parser_linux.sh</code>, not a shortened version of it.</p></div>
 
     <h2 id="delphi">Delphi: into a project you already have</h2>
-    <p>Two ways. The first puts the components in the palette and is what most
-      people want; the second is three lines in the project options and leaves
-      the IDE untouched.</p>
+    <p>The library goes into a project through the compiler search path:
+      three lines in the project options, and the IDE stays as it was.</p>
 
-    <h3>With the palette</h3>
-    <ol class="steps">
-      <li>
-        <h4>Build the two runtime packages first</h4>
-        <p><code class="frag">packages/delphi/crosspascal_parser.dpk</code>, then
-      <code class="frag">crosspascal_parserjit.dpk</code>. Open each and use
-      <b>Project, Build</b>. The design-time package requires both, and the IDE
-      does not build them for you: installing without them stops at
-      <code class="frag">E2202 Required package 'crosspascal_parser' not found</code>.</p>
-      </li>
-      <li>
-        <h4>Open the design-time package</h4>
-        <p><code class="frag">packages/delphi/crosspascal_parser_dsgn.dpk</code>. It contains the
-      registration unit and nothing else.</p>
-      </li>
-      <li>
-        <h4>Press Install</h4>
-        <p>A palette page named <b>CrossPascal</b> appears with the parser, the
-      calculator, the value list, and the threads. Drop <code class="frag">TMathParser</code>
-      on a form and it works from the Object Inspector.</p>
-      </li>
-      <li>
-        <h4>Add the library path once</h4>
-        <p>Tools, Options, Library, Library path - add <code class="frag">src</code> and
-      <code class="frag">jit</code>. Without it the IDE finds the components but the compiler
-      does not find the units.</p>
-      </li>
-    </ol>
-
-    <h3>Without the palette</h3>
+    <h3>Into the project</h3>
     <p>Project, Options, Delphi Compiler, Search path: add <code class="frag">src</code>, and
       <code class="frag">jit</code> if you want the accelerator. Then create the parser in
       code as the samples do. Nothing is installed into the IDE, which is the

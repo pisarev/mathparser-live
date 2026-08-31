@@ -513,6 +513,35 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.3.5', date: '29 August 2026', title: 'Curves that leave the window, and a panel that remembers what you did',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.5',
+    added: [
+      'Redo. Undo has been there for a while; what it undid was gone for good. Ctrl+Y or Ctrl+Shift+Z now puts it back, and the redo trail is dropped the moment you change something else - the same rule every editor follows.',
+      'A button that fits the graph to the screen. It takes the widest and tallest the curves actually go and sets the view to that, so a formula whose values live far from the origin no longer needs the view dialled in by hand.',
+      'A button that hides the list of functions and brings it back. Docked to the side the list takes most of the panel, and until now it could only be scrolled away, not put aside.',
+      'Bookmark cells can be copied and pasted one at a time. The ten cells inside the panel are unchanged; what is new is that a single cell can be taken out through the clipboard - into a mail, a file, another machine, another person - and put into any cell on the other end, not only the one it came from.',
+    ],
+    fixed: [
+      'A curve that ran past the top or bottom of the window came apart into pieces. Every excursion past an edge started a new piece, so sin(x)*3 in a window one unit high arrived in seven pieces instead of one, and there was no telling those breaks from a real discontinuity. A break is now decided by the curve itself - a step that lands past the opposite edge, which only a pole does - so 1/x still breaks at zero and a continuous curve stays whole.',
+      'A curve leaving the window stopped short of the edge instead of running into it. The point past the edge was thrown away, and with nothing to draw towards, the line ended early.',
+      'In the report, every formula colour dot was drawn in the pen colour, so with multi-coloured curves the dots did not match the curves they stood for.',
+      'Extremes were marked at the nearest grid node rather than at the actual turning point. With x*x the minimum sits exactly on a node and the error was invisible; off a node the mark was visibly beside the peak.',
+      'The note under the reference list is no longer glued to the list, and reads the same way for a curve, a bar chart, an area and a boundary.',
+      'The Color property could be pushed off the bottom of the component designer form at larger font sizes: the row count was already at its maximum, so the last property had nowhere to go.',
+      'Moved to another machine, the panel looked for its page in the wrong folder and fell back to the old window without saying so. It now writes down which file it looked for and did not find.',
+      'The library and the page check each other version at startup. A build that pairs a new library with an old page is reported instead of running.',
+      'Measuring text width is safe to call from several threads at once. The functions shared one screen device context between them.',
+      'Under FPC, a guard on the angle before sin and cos stops the geometry from raising an invalid operation where Delphi returned a number.',
+      'Under FPC 3.2.2, clipping a segment could return the wrong points. The cause is a compiler defect - a chain of array concatenations puts the last element in the wrong place - and the fix splits the chain into two steps rather than waiting for the compiler.',
+    ],
+    changed: [
+      'The panel opens on Alt+B, and building the selection is on Alt+Shift+B. It used to be Alt+G, and on any machine with Chrome installed that combination now belongs to Gemini system-wide: the plugin never sees the key, the panel does not open, and it looks as though the plugin is broken. If you had rebound the key yourself, Notepad++ keeps your choice.',
+      'The panel title names both shortcuts and shortens itself as the panel gets narrower rather than cutting the text off. When only one shortcut fits, the one that stays is the capture: the panel can be opened with the mouse and from the menu, the capture cannot.',
+      'The two clipboard buttons say what they do - copy state to the clipboard and paste state from the clipboard. They were labelled as though they saved and restored the state inside the plugin, which is what the bookmarks do.',
+    ],
+  },
+  
+  {
     tag: 'v1.3.4', date: '24 August 2026', title: 'Palette icons, forms that open again, and the panel tidied up',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.4',
     added: [
@@ -1080,6 +1109,7 @@ const indexBody = `  <section class="hero">
         <h3>${r.title}</h3>
         ${r.added.length ? `<p class="kind">Added</p><ul>${r.added.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
         ${r.fixed.length ? `<p class="kind">Fixed</p><ul>${r.fixed.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
+        ${(r.changed || []).length ? `<p class="kind">Changed</p><ul>${r.changed.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
       </div>
     </article>`).join('')}
   </section>`;
@@ -1260,7 +1290,7 @@ document.documentElement.classList.add('js');
 fs.writeFileSync('index.html', shell({
   title: 'Formulas for Pascal - read, and drawn',
   here: 'Parser', body: indexBody, script: indexScript
-}));
+}).replace(/\r\n/g, '\n'));
 
 console.log('index.html        ', (fs.statSync('index.html').size / 1024).toFixed(0), 'KB');
 module.exports = { shell, docHead, table, gotcha, m, esc, fx, fxc, fxIs, fxSays, fxCall, frag, typed, plate, PEN, byKey, pascal};
