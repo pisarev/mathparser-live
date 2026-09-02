@@ -513,6 +513,23 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.3.6', date: '1 September 2026', title: 'Tests that open in Lazarus, and a stand-in unit that stops taking a name the LCL uses',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.6',
+    added: [
+      'A getting-started project for CrossGraph: a whole application in seventy lines - a form, the component filling it, two formulas and Build. The form is assembled in code rather than in a .lfm, so the example does not depend on the version of the form format.',
+      'An .lpi beside every test of CrossGraph. The packages shipped with plain .dpr files and nothing that opened as a project in Lazarus; the .lpi points at the .dpr, so the Delphi side keeps working as before.',
+    ],
+    fixed: [
+      'Building the parser against the LCL on Linux stopped on a duplicate Messages unit. The package adds its stand-in only when the target is neither win32 nor win64 - which is exactly where the LCL carries its own lcl/nonwin32/messages, so the clash was not a matter of luck. The stand-in is Compat.Messages now, a name of its own; on Windows nothing changes for the caller.',
+      'Two tests of CrossGraph were written for Delphi alone and did not compile under FPC at all - a third of that folder was unavailable to anyone on Lazarus. Both build and run there now.',
+      'DrawTests did not start under the LCL: it drew before the widgetset was up. It brings the widgetset up first now.',
+    ],
+    changed: [
+      'The plugin itself is unchanged in 1.3.6. It is rebuilt and renumbered because it is built from the same tree as the packages.',
+    ],
+  },
+  
+  {
     tag: 'v1.3.5', date: '29 August 2026', title: 'Curves that leave the window, and a panel that remembers what you did',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.5',
     added: [
