@@ -513,8 +513,6 @@ const METHODS = [
 */
 const RELEASES = [
   {
-    // No v1.3.7 tag yet: drop this line in the same pass that pushes the tag.
-    pending: true,
     tag: 'v1.3.7', date: '6 September 2026', title: 'Axis labels that thin out on their own, and an example that runs on Linux',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.7',
     added: [],
