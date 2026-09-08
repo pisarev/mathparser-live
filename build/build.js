@@ -513,6 +513,26 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    // No v1.3.7 tag yet: drop this line in the same pass that pushes the tag.
+    pending: true,
+    tag: 'v1.3.7', date: '6 September 2026', title: 'Axis labels that thin out on their own, and an example that runs on Linux',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.7',
+    added: [],
+    fixed: [
+      'The getting-started example of CrossGraph stopped at startup on Linux with runtime error 232, "Threads not supported". The component draws in a worker thread, and Free Pascal on Unix compiles thread support in only when cthreads is the first unit of the program; the example did not name it. Reproduced here on 3.2.2 - the version it was reported from - where the same program exits with 232 without that line and runs with it.',
+      'Axis labels are spaced by density instead of two fixed rungs. The step was either 2 or 4 and always a whole number, so the axis thinned out exactly once, at a view of about twelve units. Zoomed out to a thousand the canvas took five hundred labels under two pixels apart; zoomed in below one unit no whole numbers were left in view and the axis carried no labels at all. The step now comes from the series 1, 2, 5 and powers of ten in both directions, chosen so that neighbouring labels stay at least 56 pixels apart, and fractions appear once the view is finer than a unit.',
+      'The panel keeps its proportions after the view-fitting button is pressed. The view arrived from the plugin with a height taken from the data, and a locked ratio was ignored on that one path: a circle came out as an ellipse until the window was resized, at which point the resize handler recomputed the height and quietly repaired it. The rule that size() already applied now applies here too.',
+      'A cleared sheet stays cleared. Clearing the panel, switching the coordinate system and coming back used to bring in the two built-in example formulas: the mark that says the sheet was emptied on purpose was dropped when a formula was picked up from the editor under the caret. A sheet you have never opened still shows the example - that part is intended and unchanged.',
+      'A curve keeps its origin across a change of coordinate system. Everything about a curve travelled to the other sheet except the note of where it came from, so clearing the selection removed a curve in one case and not in the other - which is what "floats, about every other time" in the report describes. The note now travels with the curve, including through the state the editor keeps between sessions.',
+      'The menu item and the panel title name the same action with the same words. The item read "Plot the selection" while the title explained the same key combination with "grab", and nothing tied the two together for a reader.',
+      'The cursor over the plot tells the truth in report mode. The canvas carried an open hand because the graph is dragged with the mouse, and dragging is refused while the report is shown - the hand promised an action that would not happen. It is an ordinary pointer there now, and an unfinished drag is dropped when the report opens.',
+    ],
+    changed: [
+      'Five of the seven fixes above come from one reader who went through 1.3.6 and wrote down what he found. Nothing in the interface moves, and no setting changes meaning.',
+    ],
+  },
+  
+  {
     tag: 'v1.3.6', date: '1 September 2026', title: 'Tests that open in Lazarus, and a stand-in unit that stops taking a name the LCL uses',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.6',
     added: [
@@ -552,7 +572,7 @@ const RELEASES = [
       'Under FPC 3.2.2, clipping a segment could return the wrong points. The cause is a compiler defect - a chain of array concatenations puts the last element in the wrong place - and the fix splits the chain into two steps rather than waiting for the compiler.',
     ],
     changed: [
-      'The panel opens on Alt+B, and building the selection is on Alt+Shift+B. It used to be Alt+G, and on any machine with Chrome installed that combination now belongs to Gemini system-wide: the plugin never sees the key, the panel does not open, and it looks as though the plugin is broken. If you had rebound the key yourself, Notepad++ keeps your choice.',
+      'The panel opens on Alt+B, and building the selection is on Alt+Shift+B. It used to be Alt+G, and on any machine with Chrome installed that combination now belongs to Gemini system-wide: the plugin never sees the key, the panel does not open, and it looks as though the plugin does not work. If you had rebound the key yourself, Notepad++ keeps your choice.',
       'The panel title names both shortcuts and shortens itself as the panel gets narrower rather than cutting the text off. When only one shortcut fits, the one that stays is the capture: the panel can be opened with the mouse and from the menu, the capture cannot.',
       'The two clipboard buttons say what they do - copy state to the clipboard and paste state from the clipboard. They were labelled as though they saved and restored the state inside the plugin, which is what the bookmarks do.',
     ],
@@ -567,7 +587,7 @@ const RELEASES = [
     ],
     fixed: [
       'Components could not be saved to a form and read back. A published read-only property of a class type is written by the streaming system as a NAME and read back as a reference to a component with that name, which does not exist. A form holding a TParser was written without complaint and refused to open afterwards.',
-      'Forms already saved by an earlier version kept failing on that same property. Not streaming it fixed new forms and left old ones broken, so the five sub-properties now accept what they are given and ignore it. An old form opens; a new one carries nothing to ignore.',
+      'Forms already saved by an earlier version kept failing on that same property. Not streaming it fixed new forms and left old ones failing to load, so the five sub-properties now accept what they are given and ignore it. An old form opens; a new one carries nothing to ignore.',
       'A lone dot from the editor selection was taken for a formula and drew an empty curve. A line counts as a formula when something in it can yield a value - a letter or a digit - so pi and exp stay formulas, and punctuation on its own does not.',
       'The ^ sign is called out where it means exclusive-or rather than a power. Written between two values it almost always means a power was intended, and the status line says: ^ is not a power - use x ** 2. The bar is narrow, so the note is kept to what the reader has to do and the whole sentence stays in its tooltip. Where the formula is already right, it stays quiet.',
       'The settings window let the graphs behind it show through sharply. It blurs its backdrop now, the way the function panel already did.',
@@ -646,7 +666,7 @@ const RELEASES = [
     added: [],
     fixed: [
       'The extremum marked on a curve was the nearest computed point rather than the extremum itself. Three things followed from that, and a reader of the plugin noticed all three: for y = x*x the answer was not zero and did not agree with the value the report printed; the mark moved when the window or the quality changed, because the grid of computed points moved with them; and raising the accuracy brought the answer closer without ever reaching it. The vertex of the drawn polyline now only opens the search - the extremum itself is found on the function, by ternary search inside the bracket the vertex gives. Measured on a shifted parabola, a shifted sine and a cusp: the answer lands within about a hundred-millionth, and it is the same answer at two different zooms.',
-      'A parabola tested at a symmetric window passed while all of this was broken, because zero fell exactly on a grid point and the right answer came out by alignment rather than by calculation. The checks that guard this now put the extremum deliberately off the grid, and ask for the same answer at two zooms rather than one.',
+      'A parabola tested at a symmetric window passed while all of this was still wrong, because zero fell exactly on a grid point and the right answer came out by alignment rather than by calculation. The checks that guard this now put the extremum deliberately off the grid, and ask for the same answer at two zooms rather than one.',
       'The build button carried a word next to its icon. The word is gone; the button keeps its name for the tooltip and for a screen reader. In a docked panel this also takes pressure off the width of the row, and a row that wraps is what used to make the panel rebuild itself.',
     ],
   },
@@ -693,7 +713,7 @@ const RELEASES = [
   },
   
   {
-    tag: 'v1.1.0', date: '10 August 2026', title: 'Thirty-two bits, a package that asks for nothing, and a defect the accelerator hid',
+    tag: 'v1.1.0', date: '10 August 2026', title: 'Thirty-two bits, a package that asks for nothing, and a case the accelerator hid',
     link: 'https://github.com/pisarev/pascal-mathparser/releases/tag/v1.1.0',
     added: [
       'Thirty-two bits, on both compilers. Windows i386 joins win64 and linux64, and the whole battery runs there: sixteen test programs on Free Pascal 3.2.2, the documentation samples, the packages themselves. It is a separate installation of the compiler rather than a switch, because Free Pascal will not target i386 from a host whose Extended is a Double - and on Win64 it is.',
@@ -778,7 +798,7 @@ const RELEASES = [
     ],
     fixed: [
       'Two accelerator tests and the thread-safety sample died on Linux before reaching their first line: on Unix the thread driver has to be the FIRST unit, and Classes standing ahead of it was enough to break that',
-      'A test compared a bound against Double(High(NativeInt)), which reinterprets the bits rather than converting the value - 0x7FFFFFFFFFFFFFFF read as a number is NaN. The comparison was silently against garbage wherever the compiler took the cast literally',
+      'A test compared a bound against Double(High(NativeInt)), which reinterprets the bits rather than converting the value - 0x7FFFFFFFFFFFFFFF read as a number is NaN. The comparison was silently against a meaningless value wherever the compiler took the cast literally',
       'The accelerator now says why it declined machine code even when the interpreter picked the work up, so the contract about wide Extended can be checked at all',
       'The Linux test script looks for the widgetset folder instead of naming one, so a Lazarus built with gtk2 no longer reports a missing Interfaces unit',
     ],
@@ -819,7 +839,7 @@ const RELEASES = [
       'The loop guards are documented: a README section with a compiled-and-run example, and the exact scope - guards belong to the thread and are set at the root of an evaluation',
     ],
     fixed: [
-      'Exit inside a formula answered to the thread scheduler: the nesting depth lived in a field shared by every thread using the parser, so a parallel Exit escaped as an exception and a lost update could leave Exit broken until another race repaired it - the depth now lives in a frame on the stack of the call',
+      'Exit inside a formula answered to the thread scheduler: the nesting depth lived in a field shared by every thread using the parser, so a parallel Exit escaped as an exception and a lost update could leave Exit unusable until another race restored it - the depth now lives in a frame on the stack of the call',
       'Exit inside brackets now ends the whole evaluation in both evaluation modes: 99 + (Exit(42)) is 42 everywhere, where the evaluate-up-front mode used to answer 141',
       'The plugin archive is reproducible: repacking the same content gives the same checksum',
     ],

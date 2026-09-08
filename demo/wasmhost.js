@@ -157,7 +157,7 @@ function extremaCount(ys) {
 /*
   The one place that accepts the page state.
 
-  The three actions are inseparable, and separating them was the defect: the
+  The three actions are inseparable, and separating them was the mistake: the
   state was remembered in one place, the session written in another, the rebuild
   done in a third, and each place took its own set of fields. That is how cleared
   and sheets went missing - from the bookmark, from the session, from the host's
@@ -185,7 +185,7 @@ function acceptState(m) {
     HOST.engine.sample sits outside any try, and the wasm imports include
     proc_exit, which throws. An engine abort would have put a state that never
     built into the session - and the page would bring it back on every open. This
-    class of defect has already been through this project once, with the empty
+    class of mistake has already been through this project once, with the empty
     sheet.
 
     HOST.opt is rolled back too: doBuild assigns it BEFORE sampling, and without

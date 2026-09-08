@@ -103,14 +103,14 @@ published here as a built file.
 ## Self test
 
 `demo/selftest.html` drives the demo in an iframe and checks what a screenshot
-would show. It exists because of a real defect: the dashed tracing line is drawn
+would show. It exists because of a real case: the dashed tracing line is drawn
 from the traced parameter, and in polar mode that parameter is an angle in graph
 coordinates, where the Y axis points up, while the canvas has it pointing down.
 Getting the sign wrong mirrors the line, and it drifts away from the point it is
 supposed to touch.
 
 The test asserts three separate invariants, because the first version of it was
-too weak and passed while the defect was present:
+too weak and passed while that behaviour was present:
 
 - **a traced point has to lie on the dashed line**, checked in all four
   quadrants. With the sign wrong the gap is about 80 pixels; with it right, zero
