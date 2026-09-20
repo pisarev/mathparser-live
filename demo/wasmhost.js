@@ -967,6 +967,99 @@ function savedState() {
 const MARKS_KEY = NS + "marks";
 const loadMarks = () => { try { return JSON.parse(localStorage.getItem(MARKS_KEY)) || []; } catch (e) { return []; } };
 
+/*
+  Fitting the view. The same measure as the plugin: the middle 96% of the
+  values, 6% of room above, zero height not allowed. The constants come from
+  WebPanel.pas (Trim, Room, Limit) - two implementations of one measure have to
+  agree, or the demo lies about how the plugin behaves.
+
+  WHY THE HOST COMPUTES IT, NOT THE PAGE. The page does not parse formulas and
+  has nothing to fit the view with: the button sends a command to the host. In
+  the plugin the host is Delphi; here it is this file.
+*/
+const FIT_SAMPLES = 1200; // as many as the plugin host takes
+const FIT_TRIM = 0.02;    // fraction dropped from each end
+const FIT_ROOM = 0.06;    // room so the curve does not hug the edge of the view
+const FIT_LIMIT = 1e12;   // past this a view is meaningless
+
+function fitMiddle(values) {
+  // Float64Array sorts NUMERICALLY; a plain array would sort as strings.
+  const a = Float64Array.from(values).sort();
+  const cut = Math.trunc(a.length * FIT_TRIM);
+  const lo = a[cut], hi = a[a.length - 1 - cut];
+  const centre = (lo + hi) / 2;
+  let half = (hi - lo) / 2;
+  // A constant function gives zero height, and a zero view divides by zero
+  // when it maps to pixels.
+  if (!(half > 0)) half = 1;
+  half *= 1 + FIT_ROOM;
+  const sane = isFinite(centre) && isFinite(half)
+    && Math.abs(centre) <= FIT_LIMIT && half <= FIT_LIMIT;
+  return sane ? { centre: centre, half: half } : null;
+}
+
+function doFit() {
+  const refuse = why => reply({ type: "fit", ok: false, note: why });
+  const o = HOST.opt;
+  const grids = HOST.grids || [];
+  if (!o || !grids.length)
+    return refuse("no curve has been built - nothing to fit");
+
+  /*
+    OUR OWN SAMPLES, not the built grid. The grid is what the QUALITY slider
+    draws, and it can hold as few as thirty points. At thirty-one the trimmed
+    fraction Trunc(31 * 0.02) is zero, the trim switches off, and a single
+    outlier sets the whole view. The plugin host takes 1200 samples regardless,
+    and the measure has to match, or the demo lies about the plugin.
+  */
+  const polar = HOST.state && HOST.state.cs === "polar";
+  const lo = polar ? 0 : o.centerX - o.maxX;
+  const hi = polar ? (o.polarAngle || 360) * Math.PI / 180 : o.centerX + o.maxX;
+  const step = (hi - lo) / (FIT_SAMPLES - 1);
+
+  // Curves off the sweep take no part: the plugin does the same (Formula.Tracing).
+  const marks = (HOST.state && HOST.state.formulas) || [];
+  const ys = [], xs = [];
+  for (const g of grids) {
+    const f = marks[g.i];
+    if (f && f.trace === false) continue;
+    for (let k = 0; k < FIT_SAMPLES; k++) {
+      const t = lo + k * step;
+      const v = HOST.engine.evalAt(g.slot, t);
+      if (!isFinite(v)) continue;
+      if (polar) {
+        // The engine gives a radius: the point comes from the same conversion
+        // used when the grid is built.
+        const x = v * Math.cos(t), y = v * Math.sin(t);
+        if (isFinite(x)) xs.push(x);
+        if (isFinite(y)) ys.push(y);
+      } else {
+        ys.push(v);
+      }
+    }
+  }
+  if (ys.length < 8)
+    return refuse("the curve gave no finite values over this interval");
+
+  const midY = fitMiddle(ys);
+  if (!midY)
+    return refuse("the fitted view fell outside sane bounds");
+
+  const got = { type: "fit", ok: true, maxY: midY.half, centerY: midY.centre,
+    note: "fitted over " + ys.length + " values" };
+  /*
+    Width is fitted only in polar mode, the same as the page does in its own
+    demo branch. In rectangular mode the width belongs to the page: the view may
+    have changed since the last build, and handing back its own stale number
+    would undo that change.
+  */
+  if (polar && xs.length >= 8) {
+    const midX = fitMiddle(xs);
+    if (midX) { got.maxX = midX.half; got.centerX = midX.centre; }
+  }
+  reply(got);
+}
+
 function doBookmark(m) {
   const marks = loadMarks();
   if (m.mode === "save") {
@@ -1065,6 +1158,7 @@ function handle(m) {
                 error: "build failed: " + (e && e.message || e) });
       }
       break;
+    case "fit": doFit(); break;
     case "trace": doTrace(m); break;
     case "report": doReport(); break;
     case "bookmark": doBookmark(m); break;
@@ -1088,6 +1182,18 @@ function handle(m) {
         .then(r => (r.ok ? r.text() : ""))
         .catch(() => "")
         .then(text => reply({ type: "reference", text: text }));
+      break;
+    /*
+      AN UNKNOWN COMMAND NO LONGER VANISHES IN SILENCE.
+
+      Twice the same case: reference on 22.08.2026, fit on 20.09.2026. Both
+      times the page sent, the host did not know, and there was neither an error
+      nor a trace - the defect lived until a person pressed the button. Now
+      there is always a trace: it fixes nothing, but it turns a silent miss into
+      one line in the log.
+    */
+    default:
+      console.warn("wasmhost: command with no handler -", m.cmd);
       break;
   }
 }
