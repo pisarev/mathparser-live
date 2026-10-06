@@ -968,29 +968,43 @@ const MARKS_KEY = NS + "marks";
 const loadMarks = () => { try { return JSON.parse(localStorage.getItem(MARKS_KEY)) || []; } catch (e) { return []; } };
 
 /*
-  Fitting the view. The same measure as the plugin: the middle 96% of the
-  values, 6% of room above, zero height not allowed. The constants come from
-  WebPanel.pas (Trim, Room, Limit) - two implementations of one measure have to
-  agree, or the demo lies about how the plugin behaves.
+  FITTING THE VIEW. The same measure the plugin uses: the middle 96 percent of
+  the values, 6 percent of room, zero height is not allowed. The constants come
+  from WebPanel.pas (Trim, Room, Limit) - two implementations of one measure
+  have to agree, otherwise the demo misreports what the plugin does.
 
-  WHY THE HOST COMPUTES IT, NOT THE PAGE. The page does not parse formulas and
-  has nothing to fit the view with: the button sends a command to the host. In
-  the plugin the host is Delphi; here it is this file.
+  WHY THE HOST COMPUTES IT AND NOT THE PAGE. The page does not parse formulas,
+  so it has nothing to fit the view from: the button sends a command to the
+  host. In the plugin the host is Delphi, here it is this file.
+
+  OCCASION, 20.09.2026. The owner pressed "Fit the view" on the showcase and
+  nothing happened: the view did not move and the log said nothing. Taken
+  apart: the page sends cmd "fit", this dispatcher did not know the command, it
+  had no default branch, and the command was lost in silence. The page itself
+  carries a working fit implementation in demo(), but that one runs only when
+  there is no host at all; this file takes the place of the host and thereby
+  switches it off.
+
+  THIS IS THE SECOND CASE OF ONE KIND. The first was 22.08.2026 with the
+  reference command: a branch was added then, which fixed the instance and left
+  the kind alone - silence on an unknown command. Now there is a default at the
+  bottom of the dispatcher, and the equality of the two command sets is guarded
+  by verify_web_protocol.
 */
-const FIT_SAMPLES = 1200; // as many as the plugin host takes
-const FIT_TRIM = 0.02;    // fraction dropped from each end
-const FIT_ROOM = 0.06;    // room so the curve does not hug the edge of the view
-const FIT_LIMIT = 1e12;   // past this a view is meaningless
+const FIT_SAMPLES = 1200; /* the same count the plugin host uses */
+const FIT_TRIM = 0.02;    /* fraction dropped from each end */
+const FIT_ROOM = 0.06;    /* room so the curve does not touch the edge */
+const FIT_LIMIT = 1e12;   /* beyond this a view means nothing */
 
 function fitMiddle(values) {
-  // Float64Array sorts NUMERICALLY; a plain array would sort as strings.
+  /* Float64Array sorts as NUMBERS; an ordinary array would sort as strings. */
   const a = Float64Array.from(values).sort();
   const cut = Math.trunc(a.length * FIT_TRIM);
   const lo = a[cut], hi = a[a.length - 1 - cut];
   const centre = (lo + hi) / 2;
   let half = (hi - lo) / 2;
-  // A constant function gives zero height, and a zero view divides by zero
-  // when it maps to pixels.
+  /* A constant function gives zero height, and a view of zero is a division by
+     zero when it is turned into pixels. */
   if (!(half > 0)) half = 1;
   half *= 1 + FIT_ROOM;
   const sane = isFinite(centre) && isFinite(half)
@@ -1003,33 +1017,50 @@ function doFit() {
   const o = HOST.opt;
   const grids = HOST.grids || [];
   if (!o || !grids.length)
-    return refuse("no curve has been built - nothing to fit");
+    return refuse("no plotted curve - nothing to fit");
 
   /*
-    OUR OWN SAMPLES, not the built grid. The grid is what the QUALITY slider
-    draws, and it can hold as few as thirty points. At thirty-one the trimmed
-    fraction Trunc(31 * 0.02) is zero, the trim switches off, and a single
-    outlier sets the whole view. The plugin host takes 1200 samples regardless,
-    and the measure has to match, or the demo lies about the plugin.
+    ITS OWN SAMPLES, NOT THE ONES OF THE PLOT GRID. The grid is built by the
+    QUALITY slider and can hold as few as thirty points. At thirty one points
+    the dropped fraction Trunc(31 * 0.02) is zero, trimming switches itself off,
+    and a single outlier sets the whole view. The plugin host always takes
+    exactly 1200 samples, and the measure has to agree, otherwise the showcase
+    misreports what the plugin does.
   */
   const polar = HOST.state && HOST.state.cs === "polar";
   const lo = polar ? 0 : o.centerX - o.maxX;
   const hi = polar ? (o.polarAngle || 360) * Math.PI / 180 : o.centerX + o.maxX;
   const step = (hi - lo) / (FIT_SAMPLES - 1);
 
-  // Curves off the sweep take no part: the plugin does the same (Formula.Tracing).
+  /* Curves outside the trace do not take part: the plugin does the same (Formula.Tracing). */
   const marks = (HOST.state && HOST.state.formulas) || [];
   const ys = [], xs = [];
+  let cut = "";
   for (const g of grids) {
     const f = marks[g.i];
     if (f && f.trace === false) continue;
-    for (let k = 0; k < FIT_SAMPLES; k++) {
+    /*
+      ONE SWEEP PER CURVE, NOT 1200 CALLS OF THEIR OWN. The engine arms the turn
+      budget differently in its two entries: WEval arms it per call, WSample
+      arms it once for the whole sweep. The previous version walked point by
+      point through evalAt and so armed a million turns for each of the 1200
+      points - up to 1.2 billion turns for one press of the button, while the
+      page promises that one budget covers a whole sweep and not each point, and
+      the plot beside it goes as a single sweep. Found by the review round of
+      04.10.2026 on release 1.3.8.
+
+      The grid of samples does not change: WSample divides the interval by the
+      same step, (Hi - Lo) / (Count - 1), so point k stays exactly where it was
+      and the measure still agrees with the plugin host.
+    */
+    const sweep = HOST.engine.sample(g.slot, lo, hi, FIT_SAMPLES);
+    if (sweep.cutoff) cut = sweep.cutoff;
+    for (let k = 0; k < sweep.length; k++) {
       const t = lo + k * step;
-      const v = HOST.engine.evalAt(g.slot, t);
+      const v = sweep[k];
       if (!isFinite(v)) continue;
       if (polar) {
-        // The engine gives a radius: the point comes from the same conversion
-        // used when the grid is built.
+        /* The engine returns a radius: the point comes from the same conversion the plot uses. */
         const x = v * Math.cos(t), y = v * Math.sin(t);
         if (isFinite(x)) xs.push(x);
         if (isFinite(y)) ys.push(y);
@@ -1039,19 +1070,35 @@ function doFit() {
     }
   }
   if (ys.length < 8)
-    return refuse("the curve gave no finite values over this interval");
+    return refuse("the curve gave no finite values on this interval"
+      + (cut ? ": " + cut : ""));
 
   const midY = fitMiddle(ys);
   if (!midY)
-    return refuse("the fitted view fell outside sane bounds");
+    return refuse("the fitted view came out beyond reasonable limits");
 
-  const got = { type: "fit", ok: true, maxY: midY.half, centerY: midY.centre,
-    note: "fitted over " + ys.length + " values" };
   /*
-    Width is fitted only in polar mode, the same as the page does in its own
-    demo branch. In rectangular mode the width belongs to the page: the view may
-    have changed since the last build, and handing back its own stale number
-    would undo that change.
+    A TRUNCATED SWEEP IS NAMED, NOT LOST. A view fitted from a partial sample
+    looks exactly like one fitted from a full sample: the same eight finite
+    values would be enough to answer with success. The limitations page promises
+    that the demo says so rather than leaving a silent gap - for the curve sweep
+    the cutoff field does it, and for the fit this reply has to.
+
+    The console copy is deliberate: the page does not show the note of a
+    successful reply, and without the copy the reason would be visible only to
+    whoever reads the reply of the host by hand. Found by the review round of
+    04.10.2026, the second one.
+  */
+  if (cut)
+    console.warn("wasmhost: the fit sweep was cut short -", cut);
+  const got = { type: "fit", ok: true, maxY: midY.half, centerY: midY.centre,
+    note: "fitted from " + ys.length + " values"
+      + (cut ? "; the sweep was cut short: " + cut : "") };
+  /*
+    The width is fitted only in polar coordinates - the way the page itself does
+    it in its own showcase branch. In rectangular coordinates the width belongs
+    to the page: the view may have changed since the last plot, and handing back
+    its own stale number would cancel that change.
   */
   if (polar && xs.length >= 8) {
     const midX = fitMiddle(xs);
@@ -1184,16 +1231,16 @@ function handle(m) {
         .then(text => reply({ type: "reference", text: text }));
       break;
     /*
-      AN UNKNOWN COMMAND NO LONGER VANISHES IN SILENCE.
+      AN UNKNOWN COMMAND IS NOT LOST IN SILENCE.
 
-      Twice the same case: reference on 22.08.2026, fit on 20.09.2026. Both
-      times the page sent, the host did not know, and there was neither an error
-      nor a trace - the defect lived until a person pressed the button. Now
-      there is always a trace: it fixes nothing, but it turns a silent miss into
-      one line in the log.
+      The same case twice: 22.08.2026 the reference command, 20.09.2026 the
+      fit command. Both times the page sent it, the host did not know it, and
+      there was neither an error nor a trace - it stayed there until a person
+      pressed the button. Now there is always a trace: it fixes nothing, but it
+      turns a mute refusal into one line of the log.
     */
     default:
-      console.warn("wasmhost: command with no handler -", m.cmd);
+      console.warn("wasmhost: a command with no handler -", m.cmd);
       break;
   }
 }

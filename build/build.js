@@ -513,6 +513,23 @@ const METHODS = [
 */
 const RELEASES = [
   {
+    tag: 'v1.3.8', date: '5 October 2026', title: 'Unhandled commands are now logged by both plugin hosts',
+    link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.8',
+    pending: true,
+    added: [],
+    fixed: [
+      'Both plugin hosts now log commands received from the page that they do not recognize. The page and host maintain separate command lists, so a command sent by the page may not be recognized by the host. Previously, these commands were silently ignored. This change adds diagnostic logging only and does not affect button behavior.',
+      'The reference window of the panel now shows examples that can actually be typed. Two defects, both inherited from earlier releases and found by the review round of this release, were measured against the parser before being corrected: repeat was described as a counted loop with an example the parser refuses outright, while the engine runs the body first and only then tests the condition; and nine examples were printed with single quotes, which this language refuses, because a string literal here is framed by a double quote. Both were corrected in the generator of the reference rather than in a copy of the file.',
+      'The panel now loads WebView2Loader.dll by full path from its own folder, in both hosts. Before, the Delphi host asked Windows for that file by name, and Windows resolves a name against the folder of the running program - the editor. In an editor where another plugin already carried an older loader, the older copy won, and the panel answered with a modal "Unsupported WebView2Loader.dll version" instead of opening; measured on 3 October 2026 with NppMarkdownPanel installed, expected 1.0.4078.44, found 1.0.3650.58. The RTL hook that names the path exists only from Delphi 12 Athens on, so on 11 Alexandria the host keeps the pre-loading by full path alone and says so in the panel log.',
+    ],
+    changed: [
+      'This release includes the browser demo\'s view-fitting fix, which has been live on the site since 21 September 2026. The fix was originally deployed separately from a numbered release. The site itself is unchanged.',
+      'Both README files now explain how to build the published packages and the getting-started sample, each using a separate, clean build configuration. The Trunk configuration has not been tested.',
+    ],
+  },
+  
+  {
+    // No v1.3.7 tag yet: drop this line in the same pass that pushes the tag.
     tag: 'v1.3.7', date: '6 September 2026', title: 'Axis labels that thin out on their own, and an example that runs on Linux',
     link: 'https://github.com/pisarev/graphbuilder-npp/releases/tag/v1.3.7',
     added: [],
@@ -873,11 +890,29 @@ const RELEASES = [
   },
 ];
 
+/*
+  The multiplier on the front page comes from the same table the accelerator
+  page takes it from - bench.tsv. It had a number of its own until 04.10.2026:
+  108x on the front page against 112x on the accelerator page, from one and the
+  same measurement (3969.2 ns against 35.5 ns in the loop row). The review round
+  of release 1.3.8 found the disagreement. One source, one truth: the row is
+  looked up by its label, and if the table has no such row the build fails
+  instead of showing a number kept in memory.
+*/
+const BENCH = fs.readFileSync(path.join(__dirname, 'bench.tsv'), 'utf8')
+  .split(/\r?\n/)
+  .filter(s => s && !s.startsWith('#'))
+  .map(s => s.split('\t'))
+  .map(([name, base, fast]) => ({ name: name, times: Math.round(+base / +fast) }));
+const LOOP_FACT = BENCH.find(b => b.name.startsWith('loop,'));
+if (!LOOP_FACT)
+  throw new Error('bench.tsv: no loop row - the front page fact has no source');
+
 const FACTS = [
   ['163', 'callable functions, from <span class="i">sin</span> to <span class="i">weeksbetween</span>'],
   ['4', 'build targets, one source'],
   ['3 000', 'fuzzed formulas &middot; zero disagreement'],
-  ['108&times;', 'the interpreter, inside a script loop'],
+  [LOOP_FACT.times + '&times;', 'the interpreter, inside a script loop'],
 ];
 
 const heroCurve = byKey(HERO.key);

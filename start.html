@@ -624,15 +624,20 @@ pwsh -File install.ps1 -Delphi</pre>
 
     <h2 id="web">Embedding the web version</h2>
     <p>The demo on this site is not a video and not a screenshot: it is the real
-      parser compiled to WebAssembly, computing in your browser. The same three
+      parser compiled to WebAssembly, computing in your browser. The same four
       files drop into any page.</p>
 
     <ol class="steps">
       <li>
-        <h4>Take three files</h4>
+        <h4>Take four files</h4>
         <p><code class="frag">parsewasm.wasm</code> - the engine; <code class="frag">wasmhost.js</code> - the
-      bridge; and the page that talks to it. They sit next to each other and are
-      loaded as static files. No server code is involved.</p>
+      bridge; the page that talks to it; and <code class="frag">syntax.xml</code> - the
+      reference of signs and functions, which the host fetches when the reference
+      button is pressed. They sit next to each other and are loaded as static
+      files. No server code is involved.</p>
+      <p>Without the fourth the demo still opens and still draws, and only the
+      reference button answers "The reference cannot be read" - which is why it
+      is named here instead of being left to the reader to find.</p>
       </li>
       <li>
         <h4>Serve them over http</h4>
