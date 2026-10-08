@@ -56,10 +56,10 @@ Five HTML files land in `build/`: the front page, syntax, accelerator,
 limitations and start. Move them one level up to have a working copy of the site.
 
 Both checkouts have to be at the tag of the release you are rebuilding -
-`v1.3.8` for both repositories. The generator reads the parser's sample
+`v1.3.9` for both repositories. The generator reads the parser's sample
 programs rather than carrying a copy of them, so a parser newer than the pages
 changes what the pages show, and the result stops being the site of this
-release. `git clone --branch v1.3.8 <url>` pins it in one step; the block above
+release. `git clone --branch v1.3.9 <url>` pins it in one step; the block above
 shows the plain form because the tag of a release does not exist before that
 release is published.
 

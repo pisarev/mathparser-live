@@ -1046,8 +1046,7 @@ function doFit() {
       point through evalAt and so armed a million turns for each of the 1200
       points - up to 1.2 billion turns for one press of the button, while the
       page promises that one budget covers a whole sweep and not each point, and
-      the plot beside it goes as a single sweep. Found by the review round of
-      04.10.2026 on release 1.3.8.
+      the plot beside it goes as a single sweep.
 
       The grid of samples does not change: WSample divides the interval by the
       same step, (Hi - Lo) / (Count - 1), so point k stays exactly where it was
@@ -1086,8 +1085,7 @@ function doFit() {
 
     The console copy is deliberate: the page does not show the note of a
     successful reply, and without the copy the reason would be visible only to
-    whoever reads the reply of the host by hand. Found by the review round of
-    04.10.2026, the second one.
+    whoever reads the reply of the host by hand.
   */
   if (cut)
     console.warn("wasmhost: the fit sweep was cut short -", cut);
